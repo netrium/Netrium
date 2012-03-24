@@ -3,6 +3,7 @@
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
 --
+{-# OPTIONS_HADDOCK hide #-}
 module WriteDotGraph (renderDotGraph, writeDotFile) where
 
 import Data.Tree
@@ -26,7 +27,7 @@ writeDotFile :: FilePath -> Tree String -> IO ()
 writeDotFile file tree = writeFile file (renderDotGraph tree)
 
 renderDotGraph :: Tree String -> String
-renderDotGraph tree = 
+renderDotGraph tree =
   unlines (
       [header
       ,graphDefaultAtribs
@@ -42,7 +43,7 @@ renderDotGraph tree =
     makeNode (n,l) = "\t" ++ show n ++ " [label=\"" ++ escape l ++  "\"];"
 
     makeEdge (n, n') = "\t" ++ show n ++ " -> " ++ show n' ++ "[];"
-    
+
     escape []        = []
     escape ('\n':cs) = "\\n" ++ escape cs
     escape ('"' :cs) = "\\\"" ++ escape cs
@@ -52,6 +53,6 @@ renderDotGraph tree =
 header = "digraph contract {"
 footer = "}"
 
-graphDefaultAtribs = "\tgraph [fontsize=14, fontcolor=black, color=black];" 
+graphDefaultAtribs = "\tgraph [fontsize=14, fontcolor=black, color=black];"
 nodeDefaultAtribs  = "\tnode [label=\"\\N\", width=\"0.75\", shape=ellipse];"
 edgeDefaultAtribs  = "\tedge [fontsize=10];"

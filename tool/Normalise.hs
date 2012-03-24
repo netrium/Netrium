@@ -9,10 +9,10 @@ import ObservableDB
 import UnitsDB
 import Paths_netrium_demo
 
-import Control.Monad      (liftM, liftM2)
+import Control.Monad      (liftM, liftM2, when)
 import Data.Version
 import System.Environment (getArgs, getProgName)
-import System.Exit        (exitFailure, exitWith)
+import System.Exit        (exitFailure, exitWith, ExitCode(..))
 import System.Directory   (getTemporaryDirectory, canonicalizePath, removeFile)
 import System.IO          (openTempFile, hPutStr, hClose)
 import System.Process     (runProcess, waitForProcess)
@@ -121,8 +121,9 @@ normalise opts input output =
                ++ [ "-i" ++ dir | dir <- ddir : optImportDirs opts ++ [cdir] ]
         args    = map ("--ghc-arg="++) ghcargs ++ [fp]
     ph <- runProcess "runghc" args Nothing Nothing Nothing Nothing Nothing
-    waitForProcess ph
+    exit <- waitForProcess ph
     removeFile fp
+    when (exit /= ExitSuccess) exitFailure
 
 
 generateContractProgram :: Bool

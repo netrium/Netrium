@@ -11,6 +11,7 @@ import Contract
 import Observable (Steps(..), VarName)
 import qualified Observable as Obs
 import DecisionTree
+import DecisionTreeSimplify
 import Observations
 
 import Prelude hiding (product, until, and)
@@ -19,7 +20,7 @@ import Data.Monoid
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Control.Monad
-import Text.XML.HaXml.XmlContent
+import Text.XML.HaXml.XmlContent hiding (next)
 import XmlUtils
 import Control.Exception (assert)
 
@@ -35,7 +36,8 @@ data Output = Receive Double Tradeable
   deriving (Eq, Show)
 
 data StopReason = Finished                      -- ^ contract reduced to 'zero'
-                | Stopped                       -- ^ stop time reached
+                | StoppedTime                   -- ^ stop time reached (in timeout mode)
+                | StoppedWait                   -- ^ stopped at first wait point (in wait mode)
                 | WaitForever                   -- ^ a non-terminating wait
                 | ChoiceRequired       Party ChoiceId
                 | ObservationExhausted VarName
@@ -56,25 +58,47 @@ data SimOutputs
        simOutputs      :: TimedEvents Output,
        simStopReason   :: StopReason,
        simStopTime     :: Time,
-       simStopContract :: Contract
+       simStopContract :: Contract,
+       simStopState    :: ProcessState,
+       simStopWaitInfo :: Maybe WaitInfo
+     }
+  deriving (Show, Eq)
+
+data StopWait = NoStop | StopFirstWait | StopNextWait
+  deriving (Show, Eq)
+
+data WaitInfo
+   = WaitInfo {
+       waitObs     :: [Obs Bool],
+       waitHorizon :: Maybe Time,
+       waitOptions :: [ChoiceId]
      }
   deriving (Show, Eq)
 
 runContract :: SimEnv
             -> Time                -- ^ start time
             -> Maybe Time          -- ^ optional stop time
-            -> Contract
+            -> StopWait            -- ^ stop at first waitpoint
+            -> Either Contract ProcessState
             -> SimOutputs
-runContract _ startTime (Just stopTime)
+runContract _ startTime (Just stopTime) _ _
   | not (stopTime > startTime)
   = error "runContract: stop time must be after start time"
 
-runContract simenv startTime mStopTime =
-    go [] [] . initialProcessState startTime
+runContract simenv startTime mStopTime mStopWait0 startState =
+    let st0 = case startState of
+                Left contract -> initialProcessState startTime contract
+                Right st@(PSt time' _ _)
+                  | startTime == time' -> st
+                  | otherwise          -> error $ "runContract: resuming from the wrong time "
+                                               ++ show time' ++ " vs " ++ show startTime
+
+     in go [] [] mStopWait0 st0
 
   where
-    go :: [(Time, String)] -> [(Time, Output)] -> ProcessState -> SimOutputs
-    go trace output st@(PSt time _ _) =
+    go :: [(Time, String)] -> [(Time, Output)] -> StopWait
+       -> ProcessState -> SimOutputs
+    go trace output mStopWait st@(PSt time _ _) =
       -- if we go past the stop time, we've done something wrong...
       assert (maybe True (time <) mStopTime) $
 
@@ -86,8 +110,10 @@ runContract simenv startTime mStopTime =
                      simTrace        = TEs (reverse trace),
                      simOutputs      = TEs (reverse out),
                      simStopReason   = reason,
-                     simStopTime     =  time',
-                     simStopContract = currentContract st'
+                     simStopTime     = time',
+                     simStopContract = currentContract st',
+                     simStopState    = st',
+                     simStopWaitInfo = Nothing
                    }
           step   = decisionStep st
           trace' = (time, show step) : trace
@@ -97,39 +123,52 @@ runContract simenv startTime mStopTime =
           result Finished time st
 
         Trade Party sf t next ->
-          go trace' ((time, Receive sf t) : output) next
+          go trace' ((time, Receive sf t) : output) mStopWait next
 
         Trade Counterparty sf t next ->
-          go trace' ((time, Provide sf t) : output) next
+          go trace' ((time, Provide sf t) : output) mStopWait next
 
         Choose p cid next1 next2 ->
           case lookupChoice (choicesMade simenv) cid time of
             Nothing            -> result (ChoiceRequired p cid) time st
-            Just v | v         -> go trace' output next1
-                   | otherwise -> go trace' output next2
+            Just v | v         -> go trace' output mStopWait next1
+                   | otherwise -> go trace' output mStopWait next2
 
         ObserveCond obs next1 next2 ->
           case evalObs obsenv time obs of
             ObsExhausted varname    -> result (ObservationExhausted varname) time st
             ObsMissing   varname    -> result (ObservationMissing   varname) time st
-            ObsResult v | v         -> go trace' output next1
-                        | otherwise -> go trace' output next2
+            ObsResult v | v         -> go trace' output mStopWait next1
+                        | otherwise -> go trace' output mStopWait next2
 
         ObserveValue obs next ->
           case evalObs obsenv time obs of
             ObsExhausted varname -> result (ObservationExhausted varname) time st
             ObsMissing   varname -> result (ObservationMissing   varname) time st
-            ObsResult    v       -> go trace' output (next v)
+            ObsResult    v       -> go trace' output mStopWait (next v)
+
+        Wait obsExprs optionsAvail | mStopWait == StopFirstWait ->
+          case simplifyWait time obsExprs (not (null optionsAvail)) of
+            Left  next   -> go trace' output mStopWait next
+            Right []     -> result Finished time st
+            Right conds' -> (result StoppedWait time st) { 
+                              simStopWaitInfo = Just WaitInfo {
+                                waitObs     = fmap fst conds',
+                                waitHorizon = fmap fst (Obs.earliestTimeHorizon time conds'),
+                                waitOptions = fmap fst optionsAvail
+                              }
+                            }
 
         Wait obsExprs optionsAvail ->
+
           let (time', waitResult) = runWait simenv obsenv
                                             mStopTime time
                                             obsExprs optionsAvail
           in case waitResult of
             ObsResult waitreason ->
                 case waitreason of
-                  WaitContinue next  -> go trace' outputU' (next time')
-                  WaitStopped        -> result'   outputU' Stopped     time' st
+                  WaitContinue next  -> go trace' outputU' mStopWait' (next time')
+                  WaitStopped        -> result'   outputU' StoppedTime time' st
                   WaitFinished       -> result'   outputF' Finished    time' st
                   WaitNonTerm        -> result'   outputF' WaitForever time' st
               where
@@ -137,6 +176,8 @@ runContract simenv startTime mStopTime =
                            | (choiceid, _k) <- optionsAvail ] ++ output
                 outputF' = [ (time, OptionForever choiceid)
                            | (choiceid, _k) <- optionsAvail ] ++ output
+                mStopWait' | mStopWait == StopNextWait = StopFirstWait
+                           | otherwise                 = mStopWait
 
             ObsExhausted varname -> result (ObservationExhausted varname) time' st
             ObsMissing   varname -> result (ObservationMissing   varname) time' st
@@ -218,7 +259,7 @@ data WaitEvent k = TakeOption ChoiceId
   deriving Show
 
 -- | Take all three sources of events we are interested in and produce a
--- unified event list 
+-- unified event list
 --
 mergeWaitEvents :: Observations Double  -- ^ time series for real primitive obs
                 -> Observations Bool    -- ^ time series for bool primitive obs
@@ -333,20 +374,6 @@ evalObs (ObsEnv realObsvns boolObsvns) time =
 -- * XML instances
 -- ---------------------------------------------------------------------------
 
-instance HTypeable Party where
-    toHType _ = Defined "Party" [] []
-
-instance XmlContent Party where
-  parseContents = do
-    e@(Elem t _ _) <- element ["Party","Counterparty"]
-    commit $ interior e $ case t of
-      "Party"        -> return Party
-      "Counterparty" -> return Counterparty
-
-  toContents Party        = [mkElemC "Party" []]
-  toContents Counterparty = [mkElemC "Counterparty" []]
-
-
 instance HTypeable Output where
     toHType _ = Defined "Output" [] []
 
@@ -362,7 +389,7 @@ instance XmlContent Output where
 
     toContents (Receive sf t) = [mkElemC "Receive" (toContents sf ++ toContents t)]
     toContents (Provide sf t) = [mkElemC "Provide" (toContents sf ++ toContents t)]
-    toContents (OptionUntil cid time') = [mkElemAC "OptionUntil" 
+    toContents (OptionUntil cid time') = [mkElemAC "OptionUntil"
                                                    [("choiceid", str2attr cid)]
                                                    (toContents time')]
     toContents (OptionForever cid)     = [mkElemAC "OptionForever"
@@ -370,16 +397,17 @@ instance XmlContent Output where
 
 
 instance HTypeable StopReason where
-    toHType _ = Defined "Stopped" [] []
+    toHType _ = Defined "StopReason" [] []
 
 instance XmlContent StopReason where
     parseContents = do
-      e@(Elem t _ _) <- element ["Finished", "Stopped","WaitForever"
+      e@(Elem t _ _) <- element ["Finished", "StoppedTime", "StoppedWait","WaitForever"
                                 ,"ChoiceRequired"
                                 ,"ObservationMissing","ObservationExhausted"]
-      commit $ interior e $case t of
+      commit $ interior e $ case t of
         "Finished"       -> return Finished
-        "Stopped"        -> return Stopped
+        "StoppedTime"    -> return StoppedTime
+        "StoppedWait"    -> return StoppedWait
         "WaitForever"    -> return WaitForever
         "ChoiceRequired" -> liftM2 ChoiceRequired parseContents
                                                   (attrStr "choiceid" e)
@@ -387,13 +415,67 @@ instance XmlContent StopReason where
         "ObservationExhausted" -> liftM ObservationExhausted (attrStr "var" e)
 
     toContents Finished    = [mkElemC "Finished"    []]
-    toContents Stopped     = [mkElemC "Stopped"     []]
+    toContents StoppedTime = [mkElemC "StoppedTime" []]
+    toContents StoppedWait = [mkElemC "StoppedWait" []]
     toContents WaitForever = [mkElemC "WaitForever" []]
 
     toContents (ChoiceRequired party choiceid) =
         [mkElemAC "ChoiceRequired" [("choiceid", str2attr choiceid)]
                                    (toContents party)]
-    toContents (ObservationExhausted var) =
-        [mkElemAC "ObservationExhausted" [("var", str2attr var)] []]
-    toContents (ObservationMissing   var) =
-        [mkElemAC "ObservationMissing" [("var", str2attr var)] []]
+    toContents (ObservationExhausted varname) =
+        [mkElemAC "ObservationExhausted" [("var", str2attr varname)] []]
+    toContents (ObservationMissing   varname) =
+        [mkElemAC "ObservationMissing" [("var", str2attr varname)] []]
+
+
+instance HTypeable StopWait where
+    toHType _ = Defined "StopWait" [] []
+
+instance XmlContent StopWait where
+  parseContents = (do
+    e@(Elem t _ _) <- element ["StopFirstWait", "StopNextWait"]
+    commit $ interior e $ case t of
+      "StopFirstWait" -> return StopFirstWait
+      "StopNextWait"  -> return StopNextWait)
+    `onFail` return NoStop
+
+  toContents NoStop        = []
+  toContents StopFirstWait = [mkElemC "StopFirstWait" []]
+  toContents StopNextWait  = [mkElemC "StopNextWait" []]
+
+
+instance HTypeable WaitInfo where
+    toHType _ = Defined "WaitInfo" [] []
+
+instance XmlContent WaitInfo where
+  parseContents = inElement "WaitInfo" $ do
+                    obss <- parseContents
+                    t    <- parseContents
+                    opts <- parseContents
+                    return $ WaitInfo ((map (\(WaitCondition obs) -> obs)) obss)
+                                      t
+                                      (map (\(WaitOption cid) -> cid) opts)
+  toContents (WaitInfo obss t opts) = [mkElemC "WaitInfo" (toContents (map WaitCondition obss)
+                                                        ++ toContents t
+                                                        ++ toContents (map WaitOption opts))]
+
+newtype WaitCondition = WaitCondition (Obs Bool)
+
+instance HTypeable WaitCondition where
+    toHType _ = Defined "WaitCondition" [] []
+
+instance XmlContent WaitCondition where
+  parseContents = inElement "WaitCondition" $
+                    liftM WaitCondition Obs.parseObsCond
+  toContents (WaitCondition obs) = [mkElemC "WaitCondition" [Obs.printObs obs]]
+
+
+newtype WaitOption = WaitOption ChoiceId
+
+instance HTypeable WaitOption where
+    toHType _ = Defined "WaitOption" [] []
+
+instance XmlContent WaitOption where
+  parseContents = inElement "WaitOption" $
+                    liftM WaitOption text
+  toContents (WaitOption cid) = [mkElemC "WaitOption" (toText cid)]

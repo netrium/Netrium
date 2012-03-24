@@ -3,16 +3,34 @@
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
 --
--- Module for contract
+--
+-- The definition of the basic contract language
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Contract (
-    module Contract,
+    -- * Contracts
+    -- ** The contract type and primitives
+    Contract(..),
+    zero, one,
+    and, give,
+    or, cond,
+    scale, ScaleFactor,
+    when, anytime, until,
+    read, letin,
 
-    Time,
+    -- ** Tradable items
+    Tradeable(..),
+    Commodity(..), Unit(..), Location(..), Duration(..),
+    Currency(..), CashFlowType(..), Portfolio(..),
 
+    -- ** Choice identifiers
+    ChoiceId,
+
+    -- * Observables
     Obs,
-    konst, var, primVar, primCond, at, before, after, between,
+    konst, var, primVar, primCond,
+    Time,
+    at, before, after, between,
     ifthen, negate, max, min, abs,
     (%==),
     (%>), (%>=), (%<), (%<=),
@@ -31,67 +49,128 @@ import Display
 import XmlUtils
 
 import Prelude hiding (product, read, until, and, or, min, max, abs, not, negate)
-import Control.Monad
+import Control.Monad hiding (when)
 import Text.XML.HaXml.XmlContent
 
--- *Contract type definition
--- |A canonical tradeable element, physical or financial
-data Tradeable = Physical  Commodity Unit Location (Maybe Duration)
-               | Financial Currency CashFlowType
+-- * Contract type definition
+-- | A canonical tradeable element, physical or financial
+data Tradeable = Physical  Commodity Unit Location (Maybe Duration) (Maybe Portfolio)
+               | Financial Currency CashFlowType (Maybe Portfolio)
   deriving (Eq, Show)
 
--- |A duration is a span of time, measured in seconds.
+-- | A duration is a span of time, measured in seconds.
+--
 newtype Duration  = Duration  Int {- in sec -} deriving (Eq, Show, Num)
--- |Commodity, e.g. Gas, Electricity
+-- | Commodity, e.g. Gas, Electricity
 newtype Commodity = Commodity String           deriving (Eq, Show)
--- |Unit, e.g. tonnes, MWh
+-- | Unit, e.g. tonnes, MWh
 newtype Unit      = Unit      String           deriving (Eq, Show)
--- |Location, e.g. UK, EU
+-- | Location, e.g. UK, EU
 newtype Location  = Location  String           deriving (Eq, Show)
--- |Currency, e.g. EUR, USD, GBP
+-- | Currency, e.g. EUR, USD, GBP
 newtype Currency  = Currency  String           deriving (Eq, Show)
--- |Cashflow type, e.g. cash, premium
+-- | Cashflow type, e.g. cash, premium
 newtype CashFlowType = CashFlowType String     deriving (Eq, Show)
+-- | Portfolio name
+newtype Portfolio = Portfolio String           deriving (Eq, Show)
 
--- |Scaling factor (used to scale the 'One' contract)
+-- | Scaling factor (used to scale the 'One' contract)
 type ScaleFactor  = Double
 
--- |Choice label, used for options
+-- | Choice label, used for options
 type ChoiceId = String
 
--- |Contract
+-- | The main contract data type
+--
 data Contract
-   = Zero                                         -- ^Deliver nothing now
-   | One  Tradeable                               -- ^Deliver one tradeable element now
+   = Zero
+   | One  Tradeable
 
-   | Give Contract                                -- ^Give a contract
-   | And  Contract Contract                       -- ^Append 2 contracts
+   | Give Contract
+   | And  Contract Contract
 
-   | Or      ChoiceId     Contract Contract       -- ^Offer a choice between 2 contracts
-   | Cond    (Obs Bool)   Contract Contract       -- ^The contract returned depend on a boolean condition
+   | Or      ChoiceId     Contract Contract
+   | Cond    (Obs Bool)   Contract Contract
 
-   | Scale    (Obs Double) Contract               -- ^Scale a contract using a scaling factor
-   | Read Var (Obs Double) Contract               -- ^Read a variable into a contract
+   | Scale    (Obs Double) Contract
+   | Read Var (Obs Double) Contract
 
-   | When             (Obs Bool)   Contract       -- ^Return a contract only at a given time
-   | Anytime ChoiceId (Obs Bool)   Contract       -- ^Return a contract anytime a condition is met
-   | Until            (Obs Bool)   Contract       -- ^Return a contract until a condition is met
+   | When             (Obs Bool)   Contract
+   | Anytime ChoiceId (Obs Bool)   Contract
+   | Until            (Obs Bool)   Contract
   deriving (Eq, Show)
 
--- |A variable
+-- | A variable
 type Var = String
 
+-- | The @zero@ contract has no rights and no obligations.
+zero :: Contract
 zero = Zero
-one  = One
+
+-- | If you acquire @one t@ you immediately recieve one unit of the
+-- 'Tradeable' @t@.
+one :: Tradeable -> Contract
+one = One
+
+-- | Swap the rights and obligations of the party and counterparty.
+give :: Contract -> Contract
 give = Give
-and  = And
-or   = Or
+
+-- | If you acquire @c1 `and` c2@ you immediately acquire /both/ @c1@ and @c2@.
+and :: Contract -> Contract -> Contract
+and = And
+
+-- | If you acquire @c1 `or` c2@ you immediately acquire your choice of
+-- /either/ @c1@ or @c2@.
+or :: ChoiceId -> Contract -> Contract -> Contract
+or = Or
+--TODO: document the ChoiceId
+
+-- | If you acquire @cond obs c1 c2@ then you acquire @c1@ if the observable
+-- @obs@ is true /at the moment of acquistion/, and @c2@ otherwise.
+cond :: Obs Bool -> Contract -> Contract -> Contract
 cond = Cond
-scale   = Scale
-read    = Read
-when    = When
+
+-- | If you acquire @scale obs c@, then you acquire @c@ at the same moment
+-- except that all the subsequent trades of @c@ are multiplied by the value
+-- of the observable @obs@ /at the moment of acquistion/.
+scale :: Obs ScaleFactor -> Contract -> Contract
+scale = Scale
+
+read :: Var -> Obs Double -> Contract -> Contract
+read = Read
+{-# DEPRECATED read "Use 'letin' instead." #-}
+
+-- | If you acquire @when obs c@, you must acquire @c@ as soon as observable
+-- @obs@ subsequently becomes true.
+when :: Obs Bool -> Contract -> Contract
+when = When
+
+-- | Once you acquire @anytime obs c@, you /may/ acquire @c@ at any time the
+-- observable @obs@ is true.
+anytime :: ChoiceId -> Obs Bool -> Contract -> Contract
 anytime = Anytime
-until   = Until
+
+-- | Once acquired, @until obs c@ is exactly like @c@ except that it /must be
+-- abandoned/ when observable @obs@ becomes true.
+until :: Obs Bool -> Contract -> Contract
+until = Until
+
+
+-- | Observe the value of an observable now and save its value to use later.
+--
+-- Currently this requires a unique variable name.
+--
+-- Example:
+--
+-- > letin "count" (count-1) $ \count' ->
+-- >   ...
+--
+letin :: String                    -- ^ A unique variable name
+      -> Obs Double                -- ^ The observable to observe now
+      -> (Obs Double -> Contract)  -- ^ The contract using the observed value
+      -> Contract
+letin vname obs c = read vname obs (c (var vname))
 
 
 -- Display tree instances
@@ -116,16 +195,19 @@ instance XmlContent Tradeable where
   parseContents = do
     e@(Elem t _ _) <- element ["Physical","Financial"]
     commit $ interior e $ case t of
-      "Physical"  -> liftM4 Physical   parseContents parseContents
-                                       parseContents parseContents
-      "Financial" -> liftM2  Financial parseContents parseContents
+      "Physical"  -> liftM5 Physical  parseContents parseContents
+                                      parseContents parseContents
+                                      parseContents
+      "Financial" -> liftM3 Financial parseContents parseContents
+                                      parseContents
 
-  toContents (Physical c u l d) = [mkElemC "Physical"  (toContents c
-                                                     ++ toContents u
-                                                     ++ toContents l
-                                                     ++ toContents d)]
-  toContents (Financial c t)    = [mkElemC "Financial" (toContents c
-                                                     ++ toContents t)]
+  toContents (Physical c u l d p) =
+    [mkElemC "Physical"  (toContents c ++ toContents u
+                       ++ toContents l ++ toContents d
+                       ++ toContents p)]
+  toContents (Financial c t p) =
+    [mkElemC "Financial" (toContents c ++ toContents t
+                       ++ toContents p)]
 
 instance HTypeable Duration where
     toHType _ = Defined "Duration" [] []
@@ -168,6 +250,13 @@ instance HTypeable CashFlowType where
 instance XmlContent CashFlowType where
   parseContents = inElement "CashFlowType" (liftM CashFlowType text)
   toContents (CashFlowType name) = [mkElemC "CashFlowType" (toText name)]
+
+instance HTypeable Portfolio where
+    toHType _ = Defined "Portfolio" [] []
+
+instance XmlContent Portfolio where
+  parseContents = inElement "Portfolio" (liftM Portfolio text)
+  toContents (Portfolio name) = [mkElemC "Portfolio" (toText name)]
 
 instance HTypeable Contract where
   toHType _ = Defined "Contract" [] []

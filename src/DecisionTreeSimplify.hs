@@ -5,7 +5,11 @@
 --
 {-# LANGUAGE DeriveFunctor, GADTs, PatternGuards #-}
 
-module DecisionTreeSimplify where
+module DecisionTreeSimplify (
+    decisionTreeSimple,
+    decisionStepWithTime,
+    simplifyWait
+  ) where
 
 import Contract
 import Observable (Steps(..))

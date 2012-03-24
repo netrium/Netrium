@@ -249,27 +249,6 @@ instance XmlContent SeriesEnd where
   toContents Unbounded   = [mkElemC "SeriesUnbounded" []]
   toContents (Bounded t) = [mkElemC "Bounded" (toContents t)]
 
-instance HTypeable Time where
-  toHType _ = Defined "Time" [] []
-
-instance XmlContent Time where
-  parseContents = inElement "Time" readText
-  toContents t  = [mkElemC "Time" (toText (show t))]
-
-instance XmlContent Double where
-  parseContents = inElement "Double" readText
-  toContents t  = [mkElemC "Double" (toText (show t))]
-
-instance XmlContent Bool where
-  parseContents = do
-    e@(Elem t _ _) <- element ["True", "False"]
-    commit $ interior e $ case t of
-      "True"  -> return True
-      "False" -> return False
-
-  toContents True  = [mkElemC "True"  []]
-  toContents False = [mkElemC "False" []]
-
 
 instance HTypeable (Timed a) where
   toHType _ = Defined "SeriesEntry" [] []

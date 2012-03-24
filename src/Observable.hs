@@ -4,22 +4,34 @@
 -- |noted. 
 --
 {-# LANGUAGE GADTs, MultiParamTypeClasses, FlexibleInstances #-}
--- Module for observables
+--
+-- The definition of observable expressions
 module Observable (
 
+    -- * Creating observables
+    Obs(..),
+    konst,
+    -- ** Named observables
+    VarName, primVar, primCond, var,
+    -- ** Time-based observables
     Time, mkdate,
-    Obs(..), konst,
-    VarName, var, primVar, primCond,
     at, before, after, between,
+    -- ** Operators
+    -- | Comparison, logical and numeric operators
     (%==), (%>), (%>=), (%<), (%<=),
     (%&&), (%||), (%+), (%-), (%*), (%/),
+    -- ** Other observable functions
     ifthen, negate, not, max, min, abs,
 
+    -- * Other utilities on observables
+    -- ** Parsing
     parseObsCond, parseObsReal, printObs,
 
+    -- ** Evaluating
     eval, Steps(..),
     subst,
 
+    -- ** Analysing
     isTrue, isFalse,
     nextTrue, nextFalse,
     evermoreTrue, evermoreFalse,
@@ -40,25 +52,33 @@ import Text.Show.Functions ()
 import Text.XML.HaXml.XmlContent
   (XMLParser(), Element(..), Content(), element, interior, text, toText, mkElemC)
 
--- *Observable type definition
--- |We use a continuous model of time.
+-- * Observable type definition
+-- | We use a continuous model of time.
 type Time  = UTCTime
 
--- |Convenience function to create a time from a date.
+-- | Convenience function to create a time from a date.
+--
 mkdate :: Integer -> Int -> Int -> Time
 mkdate year month day = UTCTime (fromGregorian year month day) 0
 
--- |A variable name
+-- | A variable name
 type VarName = String
 
--- |Domain-specific language of observable values. Morally, an
--- observable is a function from Time to a result.
+-- | A simple expression language of \"observable values\".
+-- An observable represents is a time-varying value (a function from
+-- 'Time' to a value).
+--
+-- Currently there are two types of observables:
+--
+--  * condition observables, type @Obs Bool@
+--
+--  * real-valued observables, type @Obs Double@
+--
 data Obs a where
-  Const     :: (Show a, Eq a) => a -> Obs a  -- constant value
-  Var       :: VarName -> Obs Double  -- from local environment
-  NamedVal  :: VarName -> Obs Double  -- from external environment
-  NamedCond :: VarName -> Obs Bool    -- from external environment
-  Pi        :: Obs Double             -- constant for pi
+  Const     :: (Show a, Eq a) => a -> Obs a  --  constant value
+  Var       :: VarName -> Obs Double  --  from local environment
+  NamedVal  :: VarName -> Obs Double  --  from external environment
+  NamedCond :: VarName -> Obs Bool    --  from external environment
 
   At        :: Time -> Obs Bool   -- time == t
   After     :: Time -> Obs Bool   -- time >= t
@@ -75,12 +95,11 @@ data Obs a where
 -- Note that 'Not (At _)' is a semantic error. Remember that we work with a
 -- continuous model of time. At what time would it become false?
 
--- |Unary operators
+-- | Unary operators
 data UnOp a b where
   Not       :: UnOp Bool Bool
   Neg       :: UnOp Double Double
   Abs       :: UnOp Double Double
-
   Sqrt      :: UnOp Double Double
   Exp       :: UnOp Double Double
   Log       :: UnOp Double Double
@@ -115,8 +134,6 @@ data BinOp a b c where
   Min       :: BinOp Double Double Double
   Max       :: BinOp Double Double Double
 
-  
-
 -- Notice that Obs Bool have this structure:
 --
 -- The top level expression is logical combination of Obs Bool "atoms"
@@ -134,58 +151,67 @@ data BinOp a b c where
 --        | Eq/Gt/Gte/Lt/Lte a a
 
 
--- *The basics
--- **Variables
--- |Constant value
+-- * The basics
+-- ** Variables
+-- | A constant observable.
 konst :: (Show a, Eq a) => a -> Obs a
 konst a = Const a
 
--- |Map a string to an observable (double)
-var, primVar :: VarName -> Obs Double
--- |Map a string to an observable (boolean)
-primCond     :: VarName -> Obs Bool
+-- | A named interal contract program variable.
+--
+-- Usually you should use 'letin' rather than this directly.
+var      :: VarName -> Obs Double
+
+-- | A named external real-valued observable
+--
+-- Example:
+--
+-- > primVar "gas-price"
+primVar  :: VarName -> Obs Double
+
+-- | A named external condition observable
+primCond :: VarName -> Obs Bool
+
 var      = Var
 primVar  = NamedVal
 primCond = NamedCond
 
--- **Time
--- |Returns true if we are at a given point in time
+-- ** Time
+
+-- | An observable that becomes true at a single given point in time
+-- and is false at all other times.
 at :: Time -> Obs Bool
 at     = At
--- |Returns true if we are after a given point in time
+-- | An observable that becomes true after a given point in time and is
+-- false prior to that time.
 after :: Time -> Obs Bool
-after  = After
--- |Returns true if we are before a given point in time
+after = After
+-- | An observable that is true up to a given point in time and is false
+-- thereafter.
 before :: Time -> Obs Bool
 before = Before
 
--- |Returns true if we are after between 2 given point in time
+
+-- | An observable that is true between two given points in time
+-- and is false at all other times.
 --
 -- @between t1 t2 = time >= t1 && time < t2@
 between :: Time -> Time -> Obs Bool
 between t1 t2 = after t1  %&&  before t2
 
--- **Other syntax and functions
--- |if..then..else for observables (returns an observable)
+-- ** Other syntax and functions
+-- | if..then..else for observables (returns an observable)
 ifthen :: Obs Bool -> Obs a -> Obs a -> Obs a
 ifthen   = IfThen
 
--- |Negate a boolean observable
+-- | Negate a boolean observable
 not    :: Obs Bool   -> Obs Bool
 not    = UnOp Not
 
 min    = BinOp Min
 max    = BinOp Max
 
--- Lifting
---instance Functor Obs where
---    fmap f (Obs x) = Obs (f x)
-
---lift :: (a -> b) -> Obs a -> Obs b
---lift = fmap
---lift f (Const x) = Const (f x)
-
--- *Operators
+-- * Operators
 isInfix :: BinOp a b c -> Bool
 isInfix Eq  = True
 isInfix Gt  = True
@@ -225,7 +251,7 @@ infixr 2 %||
 (%*)  = BinOp Mul
 (%/)  = BinOp Div
 
--- |Equality
+-- | Equality
 instance Eq (Obs a) where
   Const v1     == Const v2     = v1 == v2
   Var   n1     == Var   n2     = n1 == n2
@@ -246,7 +272,8 @@ instance Eq (Obs a) where
 
   _ == _ = False
 
--- |Basic Num operations
+-- | Note that you can use ordinary Num operators like '+', '-', '*' etc
+-- in observable expressions.
 instance Num (Obs Double) where
   (+)    = BinOp Add
   (*)    = BinOp Mul
@@ -256,14 +283,14 @@ instance Num (Obs Double) where
   signum = error "Obs: signum not yet implemented"
   fromInteger = konst . fromInteger
 
--- |Double operations
+-- | Double operations
 instance Fractional (Obs Double) where
   (/)    = BinOp Div
   fromRational = konst . fromRational
 
--- |Floating operations
+-- | Floating operations
 instance Floating (Obs Double) where
-  pi    = Pi
+  pi    = Const pi
   sqrt  = UnOp Sqrt
   exp   = UnOp Exp
   log   = UnOp Log
@@ -284,12 +311,11 @@ data Steps a = NeedNamedVal  Time VarName (Double -> Steps a)
              | Result a
   deriving Show
 
--- |Evaluate an observable at a given time
+-- | Evaluate an observable at a given time
 eval :: Time -> Obs a -> Steps a
 eval time = flip eval' Result
   where
     eval' :: Obs b -> (b -> Steps a) -> Steps a
-    eval' (Pi)                 k = k pi
     eval' (Const     v)        k = k v
     eval' (Var       name)     _ = error ("unbound var " ++ name)
     eval' (NamedVal  name)     k = NeedNamedVal  time name k
@@ -341,11 +367,14 @@ evalBinOp Div = (/)
 evalBinOp Min = (Prelude.min)
 evalBinOp Max = (Prelude.max)
 
--- |See 'nextTrue'
+-- | The time horizon of an condition observable is earliest time that it
+-- guaranteed to become true (or @Nothing@ if there is no such time)
 timeHorizon :: Time -> Obs Bool -> Maybe Time
 timeHorizon = nextTrue
 
--- |Return the earliest time an observable is true (or Nothing if it is never true)
+-- | Return the earliest time horizon of a set of observables and the associate
+-- tag of the observable that has the earliest time horizon (or @Nothing@ if
+-- none of the observables have a time horizon)
 earliestTimeHorizon :: Time -> [(Obs Bool, a)] -> Maybe (Time, a)
 earliestTimeHorizon time os =
     maybeMinimumBy (comparing fst)
@@ -354,19 +383,21 @@ earliestTimeHorizon time os =
     maybeMinimumBy _   [] = Nothing
     maybeMinimumBy cmp xs = Just (minimumBy cmp xs)
 
--- |Check if an observable is true at a given point in time
+-- | Check if an observable is known to be true at a given point in time,
+-- independent of knowledge of any external observables
 isTrue :: Time -> Obs Bool -> Bool
 isTrue time obs  = case eval time obs of
                      Result True -> True
                      _           -> False
 
--- |Check if an observable is false at a given point in time
+-- | Check if an observable is known to be false at a given point in time,
+-- independent of knowledge of any external observables
 isFalse :: Time -> Obs Bool -> Bool
 isFalse time obs = case eval time obs of
                      Result False -> True
                      _            -> False
 
--- |If an observable is true at a given point in time, return this time
+-- | The next time that an observable is guaranteed to become true
 nextTrue :: Time -> Obs Bool -> Maybe Time
 nextTrue time obs = case obs of
   Const     True     -> Just time
@@ -418,7 +449,7 @@ nextTrue time obs = case obs of
   BinOp Lte _ _ -> Nothing
   IfThen _  _ _ -> Nothing
 
--- |If an observable is false at a given point in time, return this time
+-- | The next time that an observable is guaranteed to become false
 nextFalse :: Time -> Obs Bool -> Maybe Time
 nextFalse time obs = case obs of
   Const     True     -> Nothing
@@ -634,10 +665,8 @@ instance DEq (BinOp a1 b1 c1) (BinOp a2 b2 c2) where
   deq _   _   = Nothing
 
 
--- |Display tree instances
-
+-- | Display tree instances
 instance Show (Obs a) where
-  show (Pi)            = show pi
   show (Const v)       = show v
   show (Var   n)       = n
   show (NamedVal  n)   = n
@@ -695,7 +724,7 @@ instance Show a => Display (Obs a) where
 
 
 -- * XML instances
--- |XML parser for doubles
+-- | XML parser for real-valued observables
 parseObsReal :: XMLParser (Obs Double)
 parseObsReal = do
   e@(Elem t _ _) <- element ["Const","Var","NamedVal","IfThen"
@@ -731,7 +760,7 @@ parseObsReal = do
 
     "IfThen" -> interior e $ liftM3 IfThen parseObsCond parseObsReal parseObsReal
 
--- |XML parser for booleans
+-- | XML parser for condition observables
 parseObsCond :: XMLParser (Obs Bool)
 parseObsCond = do
   e@(Elem t _ _) <- element ["Const","NamedCond","At", "After","Before","IfThen"
@@ -756,9 +785,8 @@ parseObsCond = do
 
     "IfThen" -> interior e $ liftM3 IfThen parseObsCond parseObsCond parseObsCond
 
--- |Create XML tags
+-- | Create XML tags
 printObs :: Obs a -> Content ()
-printObs (Pi)          = mkElemC "Pi"        (toText (show pi))
 printObs (Const v)     = mkElemC "Const"     (toText (show v))
 printObs (Var n)       = mkElemC "Var"       (toText n)
 printObs (NamedVal  n) = mkElemC "NamedVal"  (toText n)

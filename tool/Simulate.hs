@@ -7,9 +7,11 @@ module Main where
 
 import Contract (Contract, Time)
 import Interpreter
+import DecisionTree
 import Observations
 import Paths_netrium_demo
 
+import Data.Maybe
 import Data.Monoid
 import Control.Monad
 import qualified Data.Map as Map
@@ -31,6 +33,7 @@ data Options =
   Options
     { optMode    :: OutputMode
     , optTrace   :: Bool
+    , optTest    :: Bool
     , optVersion :: Bool
     }
 
@@ -38,6 +41,7 @@ defaultOptions =
   Options
     { optMode    = XmlOutput
     , optTrace   = False
+    , optTest    = False
     , optVersion = False
     }
 
@@ -51,6 +55,9 @@ options = [Option [] ["xml"]
           ,Option [] ["trace"]
                   (NoArg (\ opts -> opts { optTrace = True }))
                   "Output a trace of contract steps (--text mode only)"
+          ,Option [] ["tests"]
+                  (NoArg (\ opts -> opts { optTest = True }))
+                  "Run internal tests as well"
           ,Option [] ["version"]
                   (NoArg (\ opts -> opts { optVersion = True }))
                   "Print version information"
@@ -93,12 +100,21 @@ simulate opts contractFile observationsFile outputFile = do
 
     contract <- fReadXml contractFile
 
-    (SimulationInputs startTime mStopTime
+    (SimulationInputs startTime mStopTime mStopWait
                       valObsvns condObsvns
-                      optionsTaken choicesMade) <- fReadXml observationsFile
+                      optionsTaken choicesMade
+                      simState) <- fReadXml observationsFile
 
-    let simenv = SimEnv valObsvns condObsvns optionsTaken choicesMade
-        simout = runContract simenv startTime mStopTime contract
+    let initialState = case simState of
+                         Nothing -> Left contract
+                         Just st -> Right st
+        simenv = SimEnv valObsvns condObsvns optionsTaken choicesMade
+        simout = runContract simenv startTime mStopTime mStopWait initialState
+
+    when (optTest opts) $
+      case testRunContract simenv startTime contract of
+        Nothing  -> return ()
+        Just err -> fail ("internal tests failed: " ++ err)
 
     case optMode opts of
       XmlOutput  -> writeFile outputFile (renderContractRunXml simout)
@@ -110,18 +126,27 @@ simulate opts contractFile observationsFile outputFile = do
 
 renderContractRun :: SimOutputs -> String
 renderContractRun (SimOutputs (TEs trace) (TEs outs)
-                              stopReason stopTime residualContract) =
+                              stopReason stopTime residualContract _ mWaitInfo) =
   unlines $
        [ "============ Contract trace: ============" | not (null trace) ]
     ++ [ show time' ++ ": " ++ msg | (time', msg) <- trace ]
     ++ [ "\n============ Contract output: ============" ]
     ++ [ show out | out <- outs ]
-    ++ [ "\n============ Final contract result: ============"
+    ++ [ "\n============ Contract result: ============"
        , show stopReason
        , show stopTime ]
+    ++ case mWaitInfo of
+         Nothing -> []
+         Just (WaitInfo obss mHorizon opts) ->
+              [ "\n============ Horizon: ============" | isJust mHorizon ]
+           ++ [ show horizon | horizon <- maybeToList mHorizon ]
+           ++ [ "\n============ Wait conditions: ============" | not (null obss) ]
+           ++ [ show obs | obs <- obss ]
+           ++ [ "\n============ Available options: ============" | not (null opts) ]
+           ++ [ show opt | opt <- opts ]
 
 renderContractRunXml :: SimOutputs -> String
-renderContractRunXml (SimOutputs _ outs stopReason stopTime residualContract) =
+renderContractRunXml (SimOutputs _ outs stopReason stopTime residualContract simState mWaitInfo) =
     render (document (Document prolog emptyST body []))
 
   where
@@ -131,11 +156,14 @@ renderContractRunXml (SimOutputs _ outs stopReason stopTime residualContract) =
                   ++ toContents stopReason
                   ++ toContents stopTime
                   ++ toContents residualContract
+                  ++ toContents simState
+                  ++ toContents mWaitInfo
 
 data SimulationInputs = SimulationInputs
-                          Time (Maybe Time)
+                          Time (Maybe Time) StopWait
                           (Observations Double) (Observations Bool)
                           (Choices ()) (Choices Bool)
+                          (Maybe ProcessState)
 
 instance HTypeable SimulationInputs where
   toHType _ = Defined "ChoiceSeries" [] []
@@ -147,14 +175,17 @@ instance XmlContent SimulationInputs where
       "SimulationInputs" -> do
         startTime    <- parseContents
         mStopTime    <- parseContents
+        mStopWait    <- parseContents
         obsSeriess   <- parseContents
         choiceSeries <- parseContents
+        simState     <- parseContents
         let (valObsvns, condObsvns)     = convertObservationSeries obsSeriess
             (optionsTaken, choicesMade) = convertChoiceSeries      choiceSeries
 
-        return (SimulationInputs startTime mStopTime
+        return (SimulationInputs startTime mStopTime mStopWait
                                  valObsvns condObsvns
-                                 optionsTaken choicesMade)
+                                 optionsTaken choicesMade
+                                 simState)
 
     where
       convertObservationSeries :: [ObservationSeries]
@@ -177,14 +208,16 @@ instance XmlContent SimulationInputs where
           choicesMade  = Map.fromListWith mergeEventsBiased
                            [ (cid, TEs [(t,v)])
                            | (t, OrChoice cid v) <- choiceSeries ]
-          TEs choiceSeries = toTimedEvents choiceSeriesXml 
+          TEs choiceSeries = toTimedEvents choiceSeriesXml
 
-  toContents (SimulationInputs startTime mStopTime
+  toContents (SimulationInputs startTime mStopTime mStopWait
                                valObsvns condObsvns
-                               optionsTaken choicesMade) =
+                               optionsTaken choicesMade simState) =
       [mkElemC "SimulationInputs" $
                    toContents startTime  ++ toContents mStopTime
-                ++ toContents obsSeriess ++ toContents choiceSeries]
+                ++ toContents mStopWait
+                ++ toContents obsSeriess ++ toContents choiceSeries
+                ++ toContents simState]
     where
       obsSeriess   = [ ObservationsSeriesDouble var (fromTimeSeries ts)
                      | (var, ts) <- Map.toList valObsvns ]
@@ -197,3 +230,62 @@ instance XmlContent SimulationInputs where
                   ++ [ (t, OrChoice cid v)
                      | (cid, TEs tes) <- Map.toList choicesMade
                      , (t, v) <- tes ]
+
+-------------------------------------------------------------------------------
+-- testing
+--
+
+-- Check:
+--  * contract and process state can round trip via xml ok
+--  * trace from single stepping is the same as running from scratch
+
+testRunContract :: SimEnv -> Time -> Contract -> Maybe String
+testRunContract simenv startTime contract
+  | simStopReason overallOut /= simStopReason finalStep
+  = Just $ show (simStopReason overallOut, simStopReason finalStep)
+
+  | simStopTime overallOut /= simStopTime finalStep
+  = Just $ show (simStopTime overallOut, simStopTime finalStep)
+
+  | simOutputs overallOut /= foldr1 mergeEventsBiased (map simOutputs steps)
+  = Just $ "outputs do not match:\n"
+        ++ show (simOutputs overallOut)
+        ++ "\nvs:\n"
+        ++ show (foldr1 mergeEventsBiased (map simOutputs steps))
+
+  | simTrace overallOut /= foldr1 mergeEventsBiased (map simTrace steps)
+  = Just $ "trace does not match:\n"
+        ++ show (simTrace overallOut)
+        ++ "\nvs:\n"
+        ++ show (foldr1 mergeEventsBiased (map simTrace steps))
+
+  | not (all checkXmlRoundTrip steps)
+  = Just "xml round trip failure"
+
+  | otherwise = Nothing
+  where
+    steps = contractWaitSteps simenv startTime contract
+    finalStep = last steps
+
+    overallOut = runContract simenv startTime Nothing NoStop (Left contract)
+
+    checkXmlRoundTrip simOut = roundTripProperty (simStopContract simOut)
+                            && roundTripProperty (simStopState simOut)
+
+    roundTripProperty :: (XmlContent a, Eq a) => a -> Bool
+    roundTripProperty x = readXml (showXml False x) == Right x
+
+contractWaitSteps :: SimEnv -> Time -> Contract -> [SimOutputs]
+contractWaitSteps simenv startTime contract =
+    remainingSteps step0
+  where
+    step0 = runContract simenv startTime Nothing StopFirstWait (Left contract)
+
+    remainingSteps out
+      | simStopReason out == StoppedWait = out : remainingSteps out'
+      | otherwise                        = out : []
+      where
+        resumeState@(PSt resumeTime _ _) = simStopState out
+        out' = runContract simenv resumeTime
+                           Nothing StopNextWait
+                           (Right resumeState)

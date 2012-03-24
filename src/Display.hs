@@ -3,8 +3,9 @@
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
 --
+{-# OPTIONS_HADDOCK hide #-}
 module Display (
-  
+
     module Data.Tree,
     Display(..),
     trimDepth,

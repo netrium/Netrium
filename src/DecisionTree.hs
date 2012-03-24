@@ -14,7 +14,8 @@ import Display
 
 import Prelude hiding (product, until, and)
 import Data.List hiding (and)
-
+import Control.Monad hiding (when)
+import Text.XML.HaXml.XmlContent
 
 -- ---------------------------------------------------------------------------
 -- * Contract decision trees
@@ -64,13 +65,13 @@ decisionTree t c = unfoldDecisionTree
 data ProcessState = PSt Time                   -- ^ current time
                         [Blocked ThreadState]  -- ^ blocked
                         [ThreadState]          -- ^ runnable
-  deriving Show
+  deriving (Show, Eq)
 
 data ThreadState  = TSt Contract          -- ^ remaining contract
                         [Obs Bool]        -- ^ 'until' conditions
                         ScaleFactor       -- ^ inherited scaling
                         Party             -- ^ direction of trade
-  deriving Show
+  deriving (Show, Eq)
 
 data Blocked c =
 
@@ -79,7 +80,7 @@ data Blocked c =
 
      -- | waiting for obs to become value v
    | BlockedOnAnytime Bool ChoiceId (Obs Bool) c
-  deriving Show
+  deriving (Show, Eq)
 
 
 initialProcessState :: Time -> Contract -> ProcessState
@@ -264,3 +265,76 @@ instance Display DecisionTree where
                                 | (obs, cont) <- conds ]
                              ++ [ Node "option" [toTree (cont time)]
                                 | (_c, cont) <- opts ]
+
+-- XML instances
+instance HTypeable Party where
+    toHType _ = Defined "Party" [] []
+
+instance XmlContent Party where
+  parseContents = do
+    e@(Elem t _ _) <- element ["Party", "Counterparty"]
+    commit $ interior e $ case t of
+      "Party"        -> return Party
+      "Counterparty" -> return Counterparty
+
+  toContents Party        = [mkElemC "Party"  []]
+  toContents Counterparty = [mkElemC "Counterparty" []]
+
+
+instance HTypeable (Blocked c) where
+    toHType _ = Defined "Blocked" [] []
+
+instance XmlContent c => XmlContent (Blocked c) where
+  parseContents = do
+    e@(Elem t _ _) <- element ["BlockedOnWhen", "BlockedOnAnytime"]
+    commit $ interior e $ case t of
+      "BlockedOnWhen"    -> liftM2 BlockedOnWhen (fmap unObsCondition parseContents)
+                                                 parseContents
+      "BlockedOnAnytime" -> liftM4 BlockedOnAnytime parseContents
+                                                    (inElement "ChoiceId" text)
+                                                    (fmap unObsCondition parseContents)
+                                                    parseContents
+
+  toContents (BlockedOnWhen obs c) =
+    [mkElemC "BlockedOnWhen"  (toContents (ObsCondition obs) ++ toContents c)]
+  toContents (BlockedOnAnytime val cid obs c) =
+    [mkElemC "BlockedOnAnytime" (toContents val ++ [mkElemC "ChoiceId" (toText cid)] ++
+                                 toContents (ObsCondition obs) ++ toContents c)]
+
+newtype ObsCondition = ObsCondition { unObsCondition :: (Obs Bool) }
+
+instance HTypeable ObsCondition where
+    toHType _ = Defined "ObsCondition" [] []
+
+instance XmlContent ObsCondition where
+  parseContents = inElement "ObsCondition" $
+                    liftM ObsCondition Obs.parseObsCond
+  toContents (ObsCondition obs) = [mkElemC "ObsCondition" [Obs.printObs obs]]
+
+instance HTypeable ThreadState where
+    toHType _ = Defined "ThreadState" [] []
+
+instance XmlContent ThreadState where
+  parseContents =
+    inElement "ThreadState" $
+      liftM4 TSt parseContents
+                 (inElement "UntilConditions" (fmap (map unObsCondition) parseContents))
+                 parseContents parseContents
+  toContents (TSt c obss sf pty) =
+    [mkElemC "ThreadState" (toContents c ++
+                            mkElemC "UntilConditions" (toContents (map ObsCondition obss)) :
+                            toContents sf ++ toContents pty)]
+
+instance HTypeable ProcessState where
+    toHType _ = Defined "ProcessState" [] []
+
+instance XmlContent ProcessState where
+  parseContents =
+    inElement "ProcessState" $
+      liftM3 PSt parseContents
+                 (inElement "BlockedThreads" parseContents)
+                 (inElement "RunnableThreads" parseContents)
+  toContents (PSt t blocked runnable) =
+    [mkElemC "ProcessState" (toContents t ++
+                           [ mkElemC "BlockedThreads" (toContents blocked)
+                           , mkElemC "RunnableThreads" (toContents runnable) ])]
