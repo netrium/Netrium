@@ -1,0 +1,20 @@
+import Options
+
+contract =
+    option "opt"
+      exerciseDetails CallOption
+      gbp cash underlying
+  where
+    -- here we have a barrier condition on a different index to the price of
+    -- the underlying, the barrier is based on the temperature where as the
+    -- the underlying is for gas.
+
+    exerciseDetails =
+      barrierDownAndIn temperatureUK floorTemp $
+        europeanExercise (date 2011 06 01) strikePrice
+
+    underlying  = physical quantity (Market gas thm nbp)
+    strikePrice = 2.5 * quantity
+    quantity    = 10
+    floorTemp   = 5 --degrees
+

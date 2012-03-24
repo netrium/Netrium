@@ -1,0 +1,6 @@
+<?xml version='1.0' ?>
+<ObservableDB>
+  <ObservableDecl name="cpardfRate"> <Double/> </ObservableDecl>
+  <ObservableDecl name="cparbEvent1"> <Bool/> </ObservableDecl>
+  <ObservableDecl name="cparbEvent2"> <Bool/> </ObservableDecl>
+</ObservableDB>

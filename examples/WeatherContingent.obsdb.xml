@@ -1,0 +1,5 @@
+<?xml version='1.0' ?>
+<ObservableDB>
+  <ObservableDecl name="gas_settlement_price"> <Double/></ObservableDecl>
+  <ObservableDecl name="weather_metro_grp_CWV"><Double/></ObservableDecl>
+</ObservableDB>

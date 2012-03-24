@@ -1,0 +1,8 @@
+import Common
+import Observable
+import Swaps
+		
+cSch = [mkdate 2011 m 31 | m <- [3,6,9,12] ]
+amortTable = [(300, 1.0), (500, 0.6), (600, 0.4), (800, 0.2), (1200, 0.1)]
+
+contract = indexAmortisingSwap 6000000 cSch (Currency "EUR", Currency "EUR") (CashFlowType "initialMargin", CashFlowType "initialMargin") amortTable (90/360) (primVar "USD.LIBOR.6M") (primVar "USD.LIBOR.SPOT")

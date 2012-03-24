@@ -1,0 +1,136 @@
+<?xml version='1.0' ?>
+<SimulationInputs>
+
+  <!-- The starting time for the simulation -->
+  <Time>2010-12-31 00:00:00 UTC</Time>
+
+  <!-- The time series data for the contract, there can be many of these,
+       one per primitive observable -->
+  <ObservationSeries type="Double" var="gasVol">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>5000</Double></SeriesEntry>
+    <SeriesEnds> <Time>2012-01-01 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>
+  
+  <ObservationSeries type="Double" var="gasPrice">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>65</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-02 00:00:00 UTC</Time><Double>63</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-03 00:00:00 UTC</Time><Double>59</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-04 00:00:00 UTC</Time><Double>58</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-05 00:00:00 UTC</Time><Double>55</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-06 00:00:00 UTC</Time><Double>60</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-07 00:00:00 UTC</Time><Double>60</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-08 00:00:00 UTC</Time><Double>61</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-09 00:00:00 UTC</Time><Double>62</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-10 00:00:00 UTC</Time><Double>63</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-11 00:00:00 UTC</Time><Double>55</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-12 00:00:00 UTC</Time><Double>52</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-13 00:00:00 UTC</Time><Double>55</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-14 00:00:00 UTC</Time><Double>56</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-15 00:00:00 UTC</Time><Double>58</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-16 00:00:00 UTC</Time><Double>59</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-17 00:00:00 UTC</Time><Double>61</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-18 00:00:00 UTC</Time><Double>60</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-19 00:00:00 UTC</Time><Double>57</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-20 00:00:00 UTC</Time><Double>57</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-21 00:00:00 UTC</Time><Double>56</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-22 00:00:00 UTC</Time><Double>58</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-23 00:00:00 UTC</Time><Double>59</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-24 00:00:00 UTC</Time><Double>60</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-25 00:00:00 UTC</Time><Double>65</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-26 00:00:00 UTC</Time><Double>65</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-27 00:00:00 UTC</Time><Double>66</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-28 00:00:00 UTC</Time><Double>63</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-29 00:00:00 UTC</Time><Double>64</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-30 00:00:00 UTC</Time><Double>68</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-31 00:00:00 UTC</Time><Double>69</Double></SeriesEntry>
+    <SeriesEnds> <Time>2012-01-01 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>
+
+  <ObservationSeries type="Double" var="carbonVol">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>300</Double></SeriesEntry>
+    <SeriesEnds> <Time>2012-01-01 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>  
+  
+  <ObservationSeries type="Double" var="carbonPrice">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>98</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-02 00:00:00 UTC</Time><Double>93</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-03 00:00:00 UTC</Time><Double>89</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-04 00:00:00 UTC</Time><Double>88</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-05 00:00:00 UTC</Time><Double>85</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-06 00:00:00 UTC</Time><Double>90</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-07 00:00:00 UTC</Time><Double>90</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-08 00:00:00 UTC</Time><Double>91</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-09 00:00:00 UTC</Time><Double>92</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-10 00:00:00 UTC</Time><Double>93</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-11 00:00:00 UTC</Time><Double>85</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-12 00:00:00 UTC</Time><Double>82</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-13 00:00:00 UTC</Time><Double>85</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-14 00:00:00 UTC</Time><Double>86</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-15 00:00:00 UTC</Time><Double>88</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-16 00:00:00 UTC</Time><Double>89</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-17 00:00:00 UTC</Time><Double>91</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-18 00:00:00 UTC</Time><Double>90</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-19 00:00:00 UTC</Time><Double>87</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-20 00:00:00 UTC</Time><Double>87</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-21 00:00:00 UTC</Time><Double>86</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-22 00:00:00 UTC</Time><Double>88</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-23 00:00:00 UTC</Time><Double>89</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-24 00:00:00 UTC</Time><Double>90</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-25 00:00:00 UTC</Time><Double>95</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-26 00:00:00 UTC</Time><Double>95</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-27 00:00:00 UTC</Time><Double>96</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-28 00:00:00 UTC</Time><Double>93</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-29 00:00:00 UTC</Time><Double>94</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-30 00:00:00 UTC</Time><Double>98</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-31 00:00:00 UTC</Time><Double>99</Double></SeriesEntry>
+    <SeriesEnds> <Time>2012-01-01 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>
+
+  <ObservationSeries type="Double" var="powerVol">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>100</Double></SeriesEntry>
+    <SeriesEnds> <Time>2012-01-01 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>
+
+  <ObservationSeries type="Double" var="powerPrice">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>48</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-02 00:00:00 UTC</Time><Double>43</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-03 00:00:00 UTC</Time><Double>39</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-04 00:00:00 UTC</Time><Double>38</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-05 00:00:00 UTC</Time><Double>35</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-06 00:00:00 UTC</Time><Double>40</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-07 00:00:00 UTC</Time><Double>40</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-08 00:00:00 UTC</Time><Double>41</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-09 00:00:00 UTC</Time><Double>42</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-10 00:00:00 UTC</Time><Double>43</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-11 00:00:00 UTC</Time><Double>35</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-12 00:00:00 UTC</Time><Double>32</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-13 00:00:00 UTC</Time><Double>35</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-14 00:00:00 UTC</Time><Double>36</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-15 00:00:00 UTC</Time><Double>38</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-16 00:00:00 UTC</Time><Double>39</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-17 00:00:00 UTC</Time><Double>41</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-18 00:00:00 UTC</Time><Double>40</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-19 00:00:00 UTC</Time><Double>37</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-20 00:00:00 UTC</Time><Double>37</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-21 00:00:00 UTC</Time><Double>36</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-22 00:00:00 UTC</Time><Double>38</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-23 00:00:00 UTC</Time><Double>39</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-24 00:00:00 UTC</Time><Double>40</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-25 00:00:00 UTC</Time><Double>45</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-26 00:00:00 UTC</Time><Double>45</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-27 00:00:00 UTC</Time><Double>46</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-28 00:00:00 UTC</Time><Double>43</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-29 00:00:00 UTC</Time><Double>44</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-30 00:00:00 UTC</Time><Double>48</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-31 00:00:00 UTC</Time><Double>49</Double></SeriesEntry>
+    <SeriesEnds> <Time>2012-01-01 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>
+  
+  <!-- Choices we can, or must make when running the contract -->
+  <Choices>
+    <SeriesEntry>
+      <Time>2011-01-05 9:00:00 UTC</Time>
+      <Choice choiceid="choice"><True/></Choice>
+    </SeriesEntry>
+  </Choices>
+</SimulationInputs>

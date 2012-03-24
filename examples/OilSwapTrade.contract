@@ -1,0 +1,8 @@
+
+contract =
+	commoditySwap
+		((Market gasoil bbl us), (Market brentoil bbl uk))
+		(vol1, vol2)
+		5000 gbp cash
+		[ date 2011 m 20 | m <- [1..12] ]
+

@@ -1,0 +1,9 @@
+import Calendar
+import Swaps
+
+-- Variance swap
+contract = varianceSwap strikePrice vegaAmount varianceAmount [date 2011 01 01, date 2011 01 06] (primVar "SPX Index") [10,11,10.5,13,15] (Currency "USD") (CashFlowType "cash") (daysLater 3) "EEX Power"
+  where
+    strikePrice     = 16
+    vegaAmount      = 100000
+    varianceAmount  = vegaAmount / (strikePrice * 2)

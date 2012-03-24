@@ -1,0 +1,11 @@
+
+contract =
+    forward
+        (initialMarginFee <> exchangeFee 100)
+        (Market gas thm nbp)
+        vol1
+        0.45 gbp cash
+        [ date 2011 1 d | d <- [2..3] ]
+
+
+

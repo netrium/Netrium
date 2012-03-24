@@ -1,0 +1,18 @@
+<?xml version='1.0' ?>
+<SimulationInputs>
+
+  <!-- the starting time for the simulation -->
+  <Time>2011-01-01 00:00:00 UTC</Time>
+
+  <!-- Choices we can, or must make when running the contract -->
+  <Choices>
+    <SeriesEntry>
+      <Time>2011-01-01 16:00:00 UTC</Time>
+      <Choice choiceid="normal"><True/></Choice>
+    </SeriesEntry>
+    <SeriesEntry>
+      <Time>2011-01-02 16:00:00 UTC</Time>
+      <Choice choiceid="normal"><True/></Choice>
+    </SeriesEntry>			
+  </Choices>
+</SimulationInputs>

@@ -1,0 +1,5 @@
+<?xml version='1.0' ?>
+<ObservableDB>
+  <ObservableDecl name="vol1"><Double/></ObservableDecl>
+  <ObservableDecl name="vol2"><Double/></ObservableDecl>
+</ObservableDB>

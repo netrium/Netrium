@@ -1,0 +1,23 @@
+<?xml version='1.0' ?>
+<SimulationInputs>
+
+  <!-- the starting time for the simulation -->
+  <Time>2011-01-01 00:00:00 UTC</Time>
+
+  <!-- The time series data for the contract, there can be many of these,
+       one per primitive observable -->
+  <ObservationSeries type="Double" var="vol1">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>3</Double></SeriesEntry>
+    <SeriesUnbounded/>
+    <!-- The last entry in a timeseries can be either unbounded or it can be
+	 <SeriesEnds><Time>...</Time></SeriesEnds> 
+	 That is, just the end time, no value. -->
+  </ObservationSeries>
+
+  <ObservationSeries type="Double" var="vol2">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>4</Double></SeriesEntry>
+    <SeriesUnbounded/>
+  </ObservationSeries>
+
+  <Choices/>
+</SimulationInputs>

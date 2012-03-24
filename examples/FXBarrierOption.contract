@@ -1,0 +1,21 @@
+import Options
+
+-- Knockin down and in call option with european exercise.
+
+contract = option "selection[exercise-option]" exerciseDetails CallOption 100 (Currency "EUR") underlying
+  where
+
+    exerciseDetails =
+      barrierDownAndIn cpardUSDEUR floorPrice $
+        europeanExercise (date 2011 06 01) strikePrice
+
+    underlying strikePrice =
+         allOf[ 
+        financial 10000 (Currency "USD") (CashFlowType "cash"),
+                give $ financial 6500 (Currency "EUR") (CashFlowType "cash")
+              ]
+
+    strikePrice = 2.5 * quantity
+    quantity    = 10
+    floorPrice  = 0.7
+

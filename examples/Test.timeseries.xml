@@ -1,0 +1,32 @@
+<?xml version='1.0' ?>
+<SimulationInputs>
+
+  <!-- the starting time for the simulation -->
+  <Time>2011-01-01 00:00:00 UTC</Time>
+
+  <!-- The time series data for the contract, there can be many of these,
+       one per primitive observable -->
+  <ObservationSeries type="Bool" var="foo">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><True/></SeriesEntry>
+    <SeriesUnbounded/>
+    <!-- The last entry in a timeseries can be either unbounded or it can be
+	 <SeriesEnds><Time>...</Time></SeriesEnds> 
+	 That is, just the end time, no value. -->
+  </ObservationSeries>
+
+  <!-- Choices we can, or must make when running the contract -->
+  <Choices>
+    <!-- An 'anytime' contract choice, just a time when the option is taken
+	 and the id of the choice -->
+    <SeriesEntry>
+      <Time>2011-01-01 00:00:01 UTC</Time>
+      <Choice choiceid="anytime1"/>
+    </SeriesEntry>
+    <!-- An 'or' contract choice, also includes a True/False to indicate
+	 which of the two sub-contracts was chosen -->
+    <SeriesEntry>
+      <Time>2011-01-01 00:00:01 UTC</Time>
+      <Choice choiceid="or1"><False/></Choice>
+    </SeriesEntry>
+  </Choices>
+</SimulationInputs>

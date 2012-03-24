@@ -1,0 +1,54 @@
+
+contract =
+    gasSwing
+        (initialMarginFee <> exchangeFee 100)
+        (Market gas thm nbp)
+        (900, 1000, 1100)
+        0.45 gbp cash
+        1
+        [ (datetime 2011 1 (d-1) 16 00, date 2011 1 d)  | d <- [2..3] ]
+
+
+-----------------------------------------------------------------------
+
+--TODO: change this to use the ordinary Schedule type,
+-- and calculate the option time differently:
+type Schedule' = [(Time, Time)] -- option time, delivery time
+
+gasSwing :: FeeCalc
+         -> Market
+         -> (Volume, Volume, Volume)  -- ^ (low, normal, high) delivery volumes
+         -> Price -> Currency -> CashFlowType
+         -> Int                       -- ^ number of exercise times
+         -> Schedule'
+         -> Contract
+gasSwing fee market (lowVol,normalVol, highVol) pr cur cft exerciseCount sch =
+  allOf [ give (calcFee fee normalVol pr cur (map snd sch))
+        , read "count" (konst (fromIntegral exerciseCount)) $
+            foldr leg zero sch
+        ]
+
+  where
+    leg (optTime, delTime) remainder =
+      when (at optTime) $
+        cond (var "count" %<= konst 0)
+             normal
+             (or "normal" normal
+                          (or "low-high" low high))
+      where
+        normal = when (at delTime) $
+                   allOf [ delivery normalVol
+                         , remainder
+                       ]
+        low    = when (at delTime) $
+                   allOf [ delivery lowVol
+                         , read "count" (var "count" %- konst 1) remainder
+                         ]
+        high   = when (at delTime) $
+                   allOf [ delivery highVol
+                         , read "count" (var "count" %- konst 1) remainder
+                         ]
+
+    delivery vol = and (physical vol market)
+                       (give (financial (vol * pr) cur cft))
+

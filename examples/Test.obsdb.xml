@@ -1,0 +1,4 @@
+<?xml version='1.0' ?>
+<ObservableDB>
+  <ObservableDecl name="foo">  <Bool/> </ObservableDecl>
+</ObservableDB>

@@ -1,0 +1,14 @@
+import Calendar
+import Swaps
+
+-- First define the underlying asset, in this example a simple zcb
+underlying = zcb (date 2014 06 01) 100000000 (Currency "USD") (CashFlowType "cash")
+
+-- CDS
+-- Notional amount of $10M, 3 yearly payment at a given rate
+contract = creditDefaultSwap cEvents 1000000 [date 2012 01 01, date 2013 01 01, date 2014 01 01] (Currency "USD") cpardfRate (CashFlowType "cash") (90/360) underlying
+-- 2 credit events in this example:
+--      - Bankruptcy, which would cause a physical settlement and a termination of the contract
+--      - Failure to pay, which would cause a cash settlement of $1M but not terminate the contract
+  where cEvents = [("Bankruptcy", True, 'P', 50000000, (Currency "USD"), cparbEvent1),
+                   ("Failure to Pay", False, 'C', 1000000, (Currency "USD"), cparbEvent2) ]

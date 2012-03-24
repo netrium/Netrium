@@ -1,0 +1,9 @@
+<?xml version='1.0' ?>
+<ObservableDB>
+  <ObservableDecl name="gasVol"> <Double/> </ObservableDecl>
+  <ObservableDecl name="gasPrice"> <Double/> </ObservableDecl>
+  <ObservableDecl name="carbonVol"> <Double/> </ObservableDecl>
+  <ObservableDecl name="carbonPrice"> <Double/> </ObservableDecl>
+  <ObservableDecl name="powerVol"> <Double/> </ObservableDecl>
+  <ObservableDecl name="powerPrice"> <Double/> </ObservableDecl>
+</ObservableDB>

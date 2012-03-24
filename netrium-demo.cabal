@@ -1,0 +1,74 @@
+name:               netrium-demo
+version:            0.4.8
+synopsis:           Contract normaliser and simulator
+author:             Well-Typed LLP
+maintainer:         Well-Typed LLP
+copyright:          2009-2012 Netrium Consulting Ltd
+
+build-type:         Simple
+cabal-version:      >= 1.8
+
+data-dir:           share
+data-files:         normalise-wrapper.hs
+                    Common.hs
+                    Options.hs
+                    Calendar.hs
+                    Swaps.hs
+                    Credit.hs
+                    Pricing.hs
+                    Settlement.hs
+extra-source-files: examples/Units.db.xml
+                    examples/*.hs
+                    examples/*.contract
+                    examples/*.obsdb.xml
+                    examples/*.timeseries.xml
+
+library
+  hs-source-dirs:   src
+  exposed-modules:  WriteDotGraph
+                    Display
+                    Observable
+                    ObservableDB
+                    UnitsDB
+                    Observations
+                    Contract
+                    DecisionTree
+                    DecisionTreeSimplify
+                    Interpreter
+                    XmlUtils
+  build-depends:    base       >= 3.0 && < 5,
+                    containers >= 0.3 && < 1,
+                    process    >= 1.0 && < 2,
+                    time       >= 1.1 && < 2,
+                    HaXml      == 1.20.*
+
+executable normalise
+  hs-source-dirs:   tool
+  main-is:          Normalise.hs
+  build-depends:    netrium-demo,
+                    base       >= 3.0 && < 5,
+                    process    >= 1.0 && < 2,
+                    filepath   >= 1.1 && < 2,
+                    directory  >= 1.0 && < 2,
+                    HaXml      == 1.20.*
+
+executable simulate
+  hs-source-dirs:   tool
+  main-is:          Simulate.hs
+  build-depends:    netrium-demo,
+                    base       >= 3.0 && < 5,
+                    containers >= 0.3 && < 1,
+                    HaXml      == 1.20.*,
+                    pretty     == 1.0.*,
+                    directory  >= 1.0 && < 2,
+                    filepath
+
+executable visualise
+  hs-source-dirs:   tool
+  main-is:          Visualise.hs
+  build-depends:    netrium-demo,
+                    base       >= 3.0 && < 5,
+                    directory  >= 1.0 && < 2,
+                    filepath,
+                    process    >= 1.0 && < 2,
+                    HaXml      == 1.20.*

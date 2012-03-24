@@ -1,0 +1,47 @@
+<?xml version='1.0' ?>
+<UnitsDB>
+
+  <!-- Note: all names must begin with a lower case letter -->
+  <CashFlowTypeDecl name="cash"/>
+  <CashFlowTypeDecl name="premium"/>
+  <CashFlowTypeDecl name="indexedFixing"/>
+  <CashFlowTypeDecl name="forwardCurveFixing"/>
+  <CashFlowTypeDecl name="generalFee"/>
+  <CashFlowTypeDecl name="interestPayment"/>
+  <CashFlowTypeDecl name="initialMargin"/>
+  <CashFlowTypeDecl name="balancingOverDeliveryReceipt"/>
+  <CashFlowTypeDecl name="balancingUnderDeliveryCharge"/>
+
+  <CommodityDecl name="gas"/>
+  <CommodityDecl name="electricity"/>
+  <CommodityDecl name="gasoil"/>
+  <CommodityDecl name="brentoil"/>
+  <CommodityDecl name="carbon"/>
+  <CommodityDecl name="coal"/>
+
+ 
+
+
+  <UnitDecl name="mwh"/>
+  <UnitDecl name="bbl"/>  
+  <UnitDecl name="tons"/>
+  <UnitDecl name="thm"/>
+  <!-- "Assigned amount units" for carbon credits
+       not sure if this is standard -->
+  <UnitDecl name="aau"/>
+
+  <LocationDecl name="nbp"/>
+  <LocationDecl name="us"/>
+  <LocationDecl name="uk"/>  
+  <LocationDecl name="ttf"/>
+  <LocationDecl name="eu"/>
+  <LocationDecl name="ara"/>
+    <LocationDecl name="amprionHVG"/>
+
+  
+
+  <CurrencyDecl name="gbp"/>
+  <CurrencyDecl name="usd"/>
+  <CurrencyDecl name="eur"/>
+
+</UnitsDB>

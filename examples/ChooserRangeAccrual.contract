@@ -1,0 +1,11 @@
+import Common
+import Observable
+		
+dailySch1	= [mkdate 2011 1 d | d <- [1..2]]
+dailySch2       = [mkdate 2011 2 d | d <- [1..2]]
+dailySch3       = [mkdate 2011 3 d | d <- [1..2]]
+
+--contract = chooserLeg 80 500 (last dailySch1) dailySch1 (Currency "EUR") (primVar "LIBOR.EUR.6M") (CashFlowType "initialMargin")
+contract = chooserNote [chooserLeg 80 500 (last dailySch1) dailySch1 (Currency "EUR") (primVar "LIBOR.EUR.6M") (CashFlowType "initialMargin"),
+                        chooserLeg 45 450 (last dailySch2) dailySch2 (Currency "EUR") (primVar "LIBOR.EUR.6M") (CashFlowType "initialMargin"),
+                        chooserLeg 50 550 (last dailySch3) dailySch3 (Currency "EUR") (primVar "LIBOR.EUR.6M") (CashFlowType "initialMargin")]

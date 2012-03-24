@@ -1,0 +1,5 @@
+<?xml version='1.0' ?>
+<ObservableDB>
+  <!--ObservableDecl name="daysWithinRange"> <Double/> </ObservableDecl>
+  <ObservableDecl name="LIBOR.EUR.6M"> <Double/> </ObservableDecl-->
+</ObservableDB>

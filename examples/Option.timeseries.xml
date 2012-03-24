@@ -1,0 +1,21 @@
+<?xml version='1.0' ?>
+<SimulationInputs>
+
+  <!-- the starting time for the simulation -->
+  <Time>2011-05-01 00:00:00 UTC</Time>
+
+  <ObservationSeries type="Double" var="temperatureUK">
+    <SeriesEntry><Time>2011-05-01 00:00:00 UTC</Time><Double>6</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-05-02 00:00:00 UTC</Time><Double>5</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-05-03 00:00:00 UTC</Time><Double>6</Double></SeriesEntry>
+    <SeriesUnbounded/>
+
+  </ObservationSeries>
+
+  <Choices>
+    <SeriesEntry>
+      <Time>2011-06-01 00:00:00 UTC</Time>
+      <Choice choiceid="opt"><True/></Choice>
+    </SeriesEntry>
+  </Choices>
+</SimulationInputs>

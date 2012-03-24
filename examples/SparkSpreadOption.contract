@@ -1,0 +1,31 @@
+import Options
+
+-- Daily exercise at 9:00 on the day preceding the supply day
+-- (this is supposed to be on every EEX business day but for now it does every calendar day - to be updated when we have a proper calendar)
+contract = commoditySpreadOption "choice" legs (daysEarlier 1 <> atTimeOfDay 9 00) CallOption strikePrice (Currency "GBP") (CashFlowType "initialMargin") 10 (Currency "EUR")
+  where strikePrice = 2 * powerVol
+
+legs = [gasLeg, carbonLeg, electricityLeg]
+
+-- TTF gas: daily delivery at 6:00 CET
+-- All months have 31 days - to be updated when we have a proper calendar
+gasLeg =
+    ( Market (Commodity "Gas") (Unit "MWh") (Location "TTF"), gasVol
+    , gasPrice, (Currency "GBP"), (CashFlowType "initialMargin")
+    , [ [datetime 2011 m d 6 0 ] | m <- [1..12], d <- [1..31] ]
+    , exchangeFee  50
+    )
+
+-- Carbon: yearly certificates split into daily deliveries at 12:00
+carbonLeg =
+    ( Market (Commodity "Carbon") (Unit "t") (Location "EU"), carbonVol
+    , carbonPrice, (Currency "GBP"), (CashFlowType "initialMargin")
+    , [ [datetime 2011 m d 12 0 ] | m <- [1..12], d <- [1..31] ]
+    , exchangeFee  75)
+
+-- CE Power: delivery every 15 minutes
+electricityLeg =
+    ( Market (Commodity "Electricity") (Unit "MWh") (Location "Amprion HVG"), powerVol
+    , powerPrice, (Currency "EUR"), (CashFlowType "initialMargin")
+    , [ [datetime 2011 m d h i | h <- [0..23], i <- [0,15,30,45] ] | m <- [1], d <- [1..31] ]
+    , exchangeFee 100 )

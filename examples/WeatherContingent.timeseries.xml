@@ -1,0 +1,24 @@
+<?xml version='1.0' ?>
+<SimulationInputs>
+
+  <!-- the starting time for the simulation -->
+  <Time>2011-01-01 00:00:00 UTC</Time>
+
+  <!-- The time series data for the contract, there can be many of these,
+       one per primitive observable -->
+  <ObservationSeries type="Double" var="gas_settlement_price">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>85</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-02 00:00:00 UTC</Time><Double>86</Double></SeriesEntry>
+    <SeriesEntry><Time>2011-01-03 00:00:00 UTC</Time><Double>89</Double></SeriesEntry>
+    <SeriesEnds> <Time>2011-01-04 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>
+
+  <ObservationSeries type="Double" var="weather_metro_grp_CWV">
+    <SeriesEntry><Time>2011-01-01 00:00:00 UTC</Time><Double>4</Double></SeriesEntry>
+    <SeriesEnds> <Time>2011-01-04 00:00:00 UTC</Time></SeriesEnds> 
+  </ObservationSeries>
+  
+
+  <!-- Choices we can, or must make when running the contract -->
+  <Choices/>
+</SimulationInputs>

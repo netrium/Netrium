@@ -1,0 +1,141 @@
+
+contract =
+    weatherContingentMonthLeg
+        monthlyPremium buyersAggregateLimitAmount sellersAggregateLimitAmount
+        notionalAmount dailyDeductable weatherIndex gasIndexStrikeLevel
+        previousAggregatePayment
+        dailySch calcDate
+  where
+    monthlyPremium              = 10
+    buyersAggregateLimitAmount  = m 14.5
+    sellersAggregateLimitAmount = m 11
+    notionalAmount              = k 330
+    dailyDeductable             = k 137.5
+    gasIndexStrikeLevel         = 80
+    previousAggregatePayment    = konst 0
+    weatherIndex                = [ 4.03, 4.02, 4.01 ]
+    dailySch                    = [ date 2011 1 d | d <- [1..3] ]
+    calcDate                    = date 2011 2 5
+
+m = (*1000000)
+k = (*1000)
+
+-----------------------------------------------------------------------
+
+weatherContingentMonthLeg
+  monthlyPremium buyersAggregateLimitAmount sellersAggregateLimitAmount
+  notionalAmount dailyDeductable
+  weatherIndexStrikeSchedule gasIndexStrikeLevel
+  previousAggregatePayment
+  dailySch calcDate =
+
+    foldr daily monthEnd (zip dailySch weatherIndexStrikeSchedule) (konst 0)
+
+  where
+    daily (day, weatherIndexStrikeLevel) next dailyPaymentSum =
+      when (at day) $
+        read "dailyPaymentSum"
+          (dailyPaymentSum
+           %+ dailyPayment notionalAmount dailyDeductable
+                           weatherIndexStrikeLevel gasIndexStrikeLevel)
+          (next (var "dailyPaymentSum"))
+
+    monthEnd dailyPaymentSum =
+      when (at calcDate) $
+        financial paymentDue gbp cash
+
+      where
+        -- Aggregate Payment Amount:
+        -- For a given Calculation Date, if the sum of the Daily Payment Amounts in
+        -- the period from the Effective Date to the last Day of the month prior to
+        -- such Calculation Date is:
+        --   (i) positive, then the Aggregate Payment Amount will equal the minimum
+        --       of; (a) the sum of the Daily Payment Amounts, and (b) the Buyer's
+        --       Aggregate Limit Amount, or
+        -- 
+        --   (ii) negative, then the Aggregate Payment Amount will equal the maximum
+        --        of (a) the sum of the Daily Payment Amounts, and (b) the Seller's
+        --        Aggregate Limit Amount multiplied by negative one.
+        --
+        aggregatePayment =
+          ifthen (dailyPaymentSum %>= konst 0)
+                 (min dailyPaymentSum (konst buyersAggregateLimitAmount))
+                 (max dailyPaymentSum (konst sellersAggregateLimitAmount))
+
+        -- Payment Amount:
+        -- On each Payment Date the Payment Amount will equal the Aggregate Payment
+        -- Amount for the respective Calculation Date less the Aggregate Payment
+        -- Amount for the previous Calculation Date apart from the first Payment
+        -- Date where the Payment Amount will be the Aggregate Payment Amount.
+        paymentAmount = aggregatePayment %- previousAggregatePayment
+
+        paymentDue =
+          -- If the Payment Amount is:
+          -- (i)   positive, and Payment Amount less the Monthly Premium is positive
+          --       then Seller shall pay Buyer a sum equal to Payment Amount less
+          --       the Monthly Premium in GBP, or
+          ifthen (paymentAmount %> konst 0
+                  %&& (paymentAmount %- konst monthlyPremium) %>= konst 0)
+                 (negate (paymentAmount %- konst monthlyPremium)) $
+
+          -- (ii)  positive, and Payment Amount less the Monthly Premium is negative
+          --       then Buyer shall pay Seller a sum equal to Monthly Premium less
+          --       the Payment Amount.
+          ifthen (paymentAmount %> konst 0
+                  %&& (paymentAmount %- konst monthlyPremium) %< konst 0)
+                 (konst monthlyPremium %- paymentAmount) $
+
+          -- (iii) negative, then Buyer shall pay Seller an amount equal to the
+          --       absolute value of the Payment Amount in GBP plus the Monthly
+          --       Premium, or
+          ifthen (paymentAmount %< konst 0)
+                 (abs (paymentAmount %+ konst monthlyPremium))
+
+          -- (iv)  zero, the Buyer shall pay Seller the Monthly Premium.
+          (konst monthlyPremium)
+
+
+    dailyPayment notionalAmount dailyDeductable
+                 weatherIndexStrikeLevel gasIndexStrikeLevel =
+
+        -- Daily Payment Amount:
+        -- Where Daily Accrual Amount is positive the Daily Payment Amount due to
+        -- the Buyer shall be calculated as follows:
+        ifthen (dailyAccrual %> konst 0)
+          -- Daily Payment Amount =
+          --   Max ((Daily Accrual Amount - Daily Deductible),0)
+          (max (dailyAccrual %- konst dailyDeductable) (konst 0))
+
+          -- Where Daily Accrual Amount is negative the Daily Payment Amount due to
+          -- the Seller shall be calculated as follows:
+          --
+          -- Daily Payment Amount = Daily Accrual Amount
+          (negate dailyAccrual)
+
+      where
+        -- Daily Accrual Amount:
+        dailyAccrual =
+        -- If:
+        -- Natural Gas Settlement Price < Natural Gas Index Strike Level
+          ifthen
+            (gas_settlement_price  %< konst gasIndexStrikeLevel)
+        -- Daily Accrual Amount shall be:
+        --
+        -- Relevant Notional Amount
+        --   * [Weather Index - Weather Index Strike Level]
+        --   * [Natural Gas Index Strike Level - Natural Gas Settlement Price]
+            (konst notionalAmount
+              %* (weather_metro_grp_CWV %- konst weatherIndexStrikeLevel)
+              %* (konst gasIndexStrikeLevel %- gas_settlement_price ))
+
+        -- Where Relevant Notional Amount relates to the Notional Amount applicable
+        -- to the month in which the relevant Daily Accrual Amount falls.
+        --
+        -- A positive result is a Daily Accrual Amount in favour of the Buyer and
+        -- a negative result is a Daily Accrual Amount in favour of the Seller.
+
+        -- If:
+        -- Natural Gas Settlement Price > or = Natural Gas Index Strike Level
+        -- then, Daily Accrual Amount shall be zero.
+            (konst 0)
+
