@@ -5,3 +5,7 @@ The Netrium codebase is dual licensed under AGPLv3 and a commercial license.
 
 * For further information about the software, please contact: opensource@netrium.org
 * For further information regarding the licensing, please contact: licenses@netrium.org
+
+The following documentation will be useful to understand the Netrium Language and tools:
+
+[Language Introduction](https://github.com/netrium/Netrium/wiki/Language)
