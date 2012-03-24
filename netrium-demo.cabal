@@ -1,5 +1,5 @@
 name:               netrium-demo
-version:            0.4.8
+version:            0.5.3
 synopsis:           Contract normaliser and simulator
 author:             Well-Typed LLP
 maintainer:         Well-Typed LLP
@@ -15,13 +15,15 @@ data-files:         normalise-wrapper.hs
                     Calendar.hs
                     Swaps.hs
                     Credit.hs
-                    Pricing.hs
                     Settlement.hs
+		    ScheduledProduct.hs
 extra-source-files: examples/Units.db.xml
                     examples/*.hs
                     examples/*.contract
                     examples/*.obsdb.xml
                     examples/*.timeseries.xml
+                    regression-test.sh
+                    generate-docs.hs
 
 library
   hs-source-dirs:   src
@@ -36,6 +38,7 @@ library
                     DecisionTreeSimplify
                     Interpreter
                     XmlUtils
+                    Valuation
   build-depends:    base       >= 3.0 && < 5,
                     containers >= 0.3 && < 1,
                     process    >= 1.0 && < 2,

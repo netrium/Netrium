@@ -24,29 +24,29 @@ gasSwing :: FeeCalc
          -> Contract
 gasSwing fee market (lowVol,normalVol, highVol) pr cur cft exerciseCount sch =
   allOf [ give (calcFee fee normalVol pr cur (map snd sch))
-        , read "count" (konst (fromIntegral exerciseCount)) $
-            foldr leg zero sch
+        , letin "count" (konst (fromIntegral exerciseCount)) $ \count0 ->
+            foldr leg (\_ -> zero) sch count0
         ]
 
   where
-    leg (optTime, delTime) remainder =
+    leg (optTime, delTime) remainder count =
       when (at optTime) $
-        cond (var "count" %<= konst 0)
+        cond (count %<= 0)
              normal
              (or "normal" normal
                           (or "low-high" low high))
       where
         normal = when (at delTime) $
                    allOf [ delivery normalVol
-                         , remainder
+                         , remainder count
                        ]
         low    = when (at delTime) $
                    allOf [ delivery lowVol
-                         , read "count" (var "count" %- konst 1) remainder
+                         , letin "count" (count - 1) (\count' -> remainder count')
                          ]
         high   = when (at delTime) $
                    allOf [ delivery highVol
-                         , read "count" (var "count" %- konst 1) remainder
+                         , letin "count" (count - 1) (\count' -> remainder count')
                          ]
 
     delivery vol = and (physical vol market)

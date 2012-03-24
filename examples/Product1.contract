@@ -1,0 +1,30 @@
+import ScheduledProduct
+import Calendar
+
+contract =
+    scheduledProductRelative (date 2011 08 01) vol productUkPowerDayAheadPeak
+  where
+    -- the volume is specified at the point when the product is acquired
+    vol = 30
+
+
+productUkPowerDayAheadPeak :: ScheduledProductRelative Volume
+productUkPowerDayAheadPeak =
+    defineScheduledProductRelative
+      (\vol -> physical vol (Market electricity mwh uk))
+      (relativeDeliverySchedule
+        (daysLater 1)  -- first day
+        (daysLater 1)  -- last day (same for single day product)
+        cal
+        deliveryShape)
+
+  where
+    -- should the volume be part of the product or should it be specified at
+    -- the point when the product is acquired?
+    vol = 30
+
+    cal = getBusinessDayCalendar "EEX Power"
+    
+    -- half hour delivery between 7am -- 7pm (last delivery at 6:30pm)
+    deliveryShape =
+      complexDeliveryShape [ deliverAtTimeOfDay hr ms | hr <- [7..18], ms <- [0,30] ]

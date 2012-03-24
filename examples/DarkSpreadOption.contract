@@ -3,39 +3,37 @@ import Calendar
 
 -- Daily exercise at 15:00 on the day preceding the supply day
 -- (this is supposed to be on every fourth EEX business day but for now it does every fourth calendar day - to be updated when we have a proper calendar)
---contract = commoditySpreadOption "choice" legs (daysEarlier 4 <> atTimeOfDay 15 00) CallOption strikePrice (Currency "GBP")  (CashFlowType "initialMargin") cpardpremium (Currency "EUR")
-contract = commoditySpreadOption
-                "selection[choice]"                    -- option label
-                legs                                   -- legs of the spread, as defined below
-                ("EEX Power", (-4), "DB", (15, 00))    -- Exercise info: calendar to use, day offset, time limit for exercise and type of day (e.g. business day)
-                ("EEX Power", 5, "DB", (00, 00))       -- Settlement info: calendar to use, day offset, time of day and type of day
-                CallOption
-                strikePrice gbp                        -- Strike price and its currency
-                cash
-                cpardpremium eur                       -- Premium and its currency
-                   where strikePrice = 7 * cpardpowerVol
+contract = commoditySpreadOption "choice" legs
+             (calendarDaysEarlier calendar 4 <> atTimeOfDay 15 00)
+             (calendarDaysLater   calendar 5)
+             CallOption
+             strikePrice gbp (CashFlowType "initialMargin")
+             premium gbp
+  where strikePrice = 7 * powerVol
+        premium = 3
+        calendar = getBusinessDayCalendar "EEX Power"
 
 legs = [coalLeg, carbonLeg, electricityLeg]
+months = [1..1] -- Should be [1..12], but cut down to reduce runtime
 
 -- API2 coal: monthly delivery (assumption is 1st of the month)
 coalLeg =
-    ( Market coal tons ara, (convertDouble cpardcoalVol (konst 0.4))
-    , (convertDouble cpardcoalPrice cpardUSDEUR), usd, cash
---    , [[calDaysOffset (getCalendar "EEX Power") (datetime 2011 1 28 00 00) "DB" (-1)]]
-    , [ [datetime 2011 m 1 0 0 ] | m <- [1..12] ]
-    , exchangeFee  cpardcoalExchangeFee
+    ( Market (Commodity "Coal") (Unit "MWh") (Location "ARA"), coalVol
+    , coalPrice, (Currency "USD"), (CashFlowType "initialMargin")
+    , [ [datetime 2011 m 1 0 0 ] | m <- months ]
+    , exchangeFee  50
     )
 
 -- Carbon: yearly certificates split into monthly deliveries at 12:00
 carbonLeg =
-    ( Market carbon tons eu, (convertDouble cpardcarbonVol (konst 0.9))
-    , cpardcarbonPrice, gbp, cash
-    , [ [datetime 2011 m 1 12 0 ] | m <- [1..12] ]
-    , exchangeFee  cpardcarbonExchangeFee)
+    ( Market (Commodity "Carbon") (Unit "t") (Location "EU"), carbonVol
+    , carbonPrice, (Currency "GBP"), (CashFlowType "initialMargin")
+    , [ [datetime 2011 m 1 12 0 ] | m <- months ]
+    , exchangeFee  75)
 
 -- CE Power: delivery every 15 minutes
 electricityLeg =
-    ( Market electricity mwh amprionHVG, cpardpowerVol
-    , cpardpowerPrice, eur, cash
-    , [ [datetime 2011 m d h i | d <- [1], h <- [0..23], i <- [0,15,30,45] ] | m <- [1] ]
-    , exchangeFee cpardpowerExchangeFee )
+    ( Market (Commodity "Electricity") (Unit "MWh") (Location "Amprion HVG"), powerVol
+    , powerPrice, (Currency "EUR"), (CashFlowType "initialMargin")
+    , [ [datetime 2011 m d h i | d <- [1..31], h <- [0..23], i <- [0,15,30,45] ] | m <- months ]
+    , exchangeFee 100 )

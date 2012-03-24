@@ -2,10 +2,20 @@ import Options
 
 -- Daily exercise at 9:00 on the day preceding the supply day
 -- (this is supposed to be on every EEX business day but for now it does every calendar day - to be updated when we have a proper calendar)
-contract = commoditySpreadOption "choice" legs (daysEarlier 1 <> atTimeOfDay 9 00) CallOption strikePrice (Currency "GBP") (CashFlowType "initialMargin") 10 (Currency "EUR")
-  where strikePrice = 2 * powerVol
+contract = commoditySpreadOption "choice"
+             legs
+             exerciseDate
+             paymentDate
+             CallOption
+             strikePrice gbp (CashFlowType "initialMargin")
+             premium gbp
+  where
+    strikePrice  = 2 * powerVol
+    exerciseDate = daysEarlier 1 <> atTimeOfDay 9 00
+    paymentDate  = exerciseDate
+    premium = 0
 
-legs = [gasLeg, carbonLeg, electricityLeg]
+    legs = [gasLeg, carbonLeg, electricityLeg]
 
 -- TTF gas: daily delivery at 6:00 CET
 -- All months have 31 days - to be updated when we have a proper calendar

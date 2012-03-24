@@ -4,6 +4,13 @@
   <!-- the starting time for the simulation -->
   <Time>2011-01-01 00:00:00 UTC</Time>
 
+  <!-- optionally use the stop/continue mode -->
+  <!--  <StopFirstWait/> -->
+  <StopNextWait/>
+  <!-- can either stop at the first wait, or when resuming
+       stop at the next wait (since we resume at a wait point,
+       so first wait would make no progress) -->
+
   <!-- The time series data for the contract, there can be many of these,
        one per primitive observable -->
   <ObservationSeries type="Bool" var="foo">
@@ -20,7 +27,7 @@
 	 and the id of the choice -->
     <SeriesEntry>
       <Time>2011-01-01 00:00:01 UTC</Time>
-      <Choice choiceid="anytime1"/>
+      <Choice choiceid="%1"/>
     </SeriesEntry>
     <!-- An 'or' contract choice, also includes a True/False to indicate
 	 which of the two sub-contracts was chosen -->
@@ -29,4 +36,27 @@
       <Choice choiceid="or1"><False/></Choice>
     </SeriesEntry>
   </Choices>
+  
+  <!-- If we are resuming (ie <StopNextWait/>) then we should supply the
+       interpreter state that was produced as part of the sim output when
+       it previously stopped -->
+
+  <ProcessState>
+    <Time>2011-01-01 00:00:00 UTC</Time>
+    <BlockedThreads>
+      <BlockedOnAnytime>
+        <False/><ChoiceId>%1</ChoiceId>
+        <ObsCondition><NamedCond>foo</NamedCond></ObsCondition>
+        <ThreadState>
+          <One>
+            <Financial><Currency>gbp</Currency><CashFlowType>cash</CashFlowType></Financial>
+          </One>
+          <UntilConditions/>
+          <Double>1.0</Double>
+          <Party/>
+        </ThreadState>
+      </BlockedOnAnytime>
+    </BlockedThreads>
+    <RunnableThreads/>
+  </ProcessState>
 </SimulationInputs>

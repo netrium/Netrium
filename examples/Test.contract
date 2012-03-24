@@ -2,17 +2,19 @@
 contract = ex3
 
 ex2 = anytime "%1" (between (date 2011 1 2) (date 2011 1 3)
-         %|| between (date 2011 1 5) (date 2011 1 6)) ((one (Financial gbp cash)))
+         %|| between (date 2011 1 5) (date 2011 1 6)) (one quid)
 
-ex3 = anytime "%1" foo ((one (Financial gbp cash)))
-ex4 = anytime "%1" (konst True) ((one (Financial gbp cash)))
+ex3 = anytime "%1" foo (one quid)
+ex4 = anytime "%1" (konst True) (one quid)
 
 ex5 = until (at (date 2011 1 2))
-            (anytime "%1" foo ((one (Financial gbp cash))))
+            (anytime "%1" foo (one quid))
 
-ex6 = or "%1" (one (Financial gbp cash))
-              (scale (konst 3) (one (Financial gbp cash)))
+ex6 = or "%1" (one quid)
+              (scale (konst 3) (one quid))
 
 
-ex7 = cond foo (one (Financial gbp cash))
-               (scale (konst 2) (one (Financial gbp cash)))
+ex7 = cond foo (one quid)
+               (scale (konst 2) (one quid))
+
+quid = Financial gbp cash Nothing

@@ -1,10 +1,25 @@
 import Options
 
 contract =
-    option "opt"
-      exerciseDetails CallOption
-      gbp cash underlying
+    option "opt" exerciseDetails CallOption emptyOptionAttrs underlying
+
   where
+    -- note that the underlying contract describes *both* what we recieve and
+    -- how much we pay for it (which depends on the strike price).
+    -- of course for a vanilla european option the strike price is fixed,
+    -- but with something like an asian option, it's calculated,
+    -- which is why here the strike price is a paramater to underlying rather
+    -- than us just using the 'strikePrice' variable defined below.
+
+    underlying sp = physical quantity (Market gas thm nbp)
+              `and` give (financial (sp * quantity) gbp cash)
+    quantity = 10
+    
+    -- Note also, that this 'sp' (strike price) paramater can be used as the
+    -- basis for multiple cash flows, e.g. regular payments, rather than just
+    -- a payment at the time the option is exercised.
+
+
     -- here we have a barrier condition on a different index to the price of
     -- the underlying, the barrier is based on the temperature where as the
     -- the underlying is for gas.
@@ -13,8 +28,5 @@ contract =
       barrierDownAndIn temperatureUK floorTemp $
         europeanExercise (date 2011 06 01) strikePrice
 
-    underlying  = physical quantity (Market gas thm nbp)
-    strikePrice = 2.5 * quantity
-    quantity    = 10
+    strikePrice = 2.5
     floorTemp   = 5 --degrees
-

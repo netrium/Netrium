@@ -1,14 +1,9 @@
 <?xml version='1.0' ?>
 <ObservableDB>
-  <ObservableDecl name="cpardcoalVol"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardcoalPrice"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardcarbonVol"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardcarbonPrice"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardpowerVol"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardpowerPrice"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardpremium"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardcoalExchangeFee"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardcarbonExchangeFee"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardpowerExchangeFee"> <Double/> </ObservableDecl>
-  <ObservableDecl name="cpardUSDEUR"> <Double/> </ObservableDecl>
+  <ObservableDecl name="coalVol"><Double/></ObservableDecl>
+  <ObservableDecl name="coalPrice"><Double/></ObservableDecl>
+  <ObservableDecl name="carbonVol"><Double/></ObservableDecl>
+  <ObservableDecl name="carbonPrice"><Double/></ObservableDecl>
+  <ObservableDecl name="powerVol"><Double/></ObservableDecl>
+  <ObservableDecl name="powerPrice"><Double/></ObservableDecl>
 </ObservableDB>

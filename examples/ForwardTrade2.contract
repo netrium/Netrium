@@ -23,7 +23,7 @@ forward' fee market vol pr cur cft sch dur =
         give (calcFee fee vol pr cur sch)
   `and`
         allOf
-          [ when (at t) $    physicalWithDuration vol market dur
+          [ when (at t) $    physicalWith vol market (withDuration dur)
                        `and` give (financial (vol * pr) cur cft)
           | t <- sch ]
 

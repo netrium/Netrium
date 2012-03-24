@@ -34,11 +34,11 @@ weatherContingentMonthLeg
   where
     daily (day, weatherIndexStrikeLevel) next dailyPaymentSum =
       when (at day) $
-        read "dailyPaymentSum"
+        letin "dailyPaymentSum"
           (dailyPaymentSum
            %+ dailyPayment notionalAmount dailyDeductable
                            weatherIndexStrikeLevel gasIndexStrikeLevel)
-          (next (var "dailyPaymentSum"))
+          (\dailyPaymentSum' -> next dailyPaymentSum')
 
     monthEnd dailyPaymentSum =
       when (at calcDate) $

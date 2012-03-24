@@ -1,4 +1,6 @@
 
+import Swaps
+
 contract =
 	commoditySwap
 		((Market gasoil bbl us), (Market brentoil bbl uk))

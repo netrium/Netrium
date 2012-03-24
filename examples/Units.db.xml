@@ -19,11 +19,8 @@
   <CommodityDecl name="carbon"/>
   <CommodityDecl name="coal"/>
 
- 
-
-
   <UnitDecl name="mwh"/>
-  <UnitDecl name="bbl"/>  
+  <UnitDecl name="bbl"/>
   <UnitDecl name="tons"/>
   <UnitDecl name="thm"/>
   <!-- "Assigned amount units" for carbon credits
@@ -32,13 +29,11 @@
 
   <LocationDecl name="nbp"/>
   <LocationDecl name="us"/>
-  <LocationDecl name="uk"/>  
+  <LocationDecl name="uk"/>
   <LocationDecl name="ttf"/>
   <LocationDecl name="eu"/>
   <LocationDecl name="ara"/>
-    <LocationDecl name="amprionHVG"/>
-
-  
+  <LocationDecl name="amprionHVG"/>
 
   <CurrencyDecl name="gbp"/>
   <CurrencyDecl name="usd"/>
