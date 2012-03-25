@@ -19,3 +19,7 @@ The following documentation will be useful to understand the Netrium Language an
 
 * [Language Introduction](https://github.com/netrium/Netrium/wiki/Language)
 * [Command Line Tools](https://github.com/netrium/Netrium/wiki/Command-Line-Tools)
+
+### Copyright
+
+Netrium is Copyright 2009-2012 Netrium Consulting Ltd.
