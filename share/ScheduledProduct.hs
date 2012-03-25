@@ -109,7 +109,7 @@ scheduledProduct :: q -> ScheduledProduct q -> Contract
 scheduledProduct quantity (ScheduledProduct underlying (DeliverySchedule blocks))
   = allOf
       [ when (at t) (underlying quantity)
-      | (days, DeliveryShape deliverySegments) <- blocks
+      | (days, _, _, DeliveryShape deliverySegments) <- blocks
       , day    <- days
       , offset <- deliverySegments
       , let t = adjustDateTime day offset ]
@@ -128,7 +128,7 @@ setScheduledProductDate :: DateTime -> ScheduledProductRelative q -> ScheduledPr
 setScheduledProductDate acquireDate
     (ScheduledProductRelative p (DeliveryScheduleRelative relShedule))
   = ScheduledProduct p $ DeliverySchedule
-      [ (days, shape)
+      [ (days, startDate, endDate, shape)
       | (startOffset, endOffset, cal, shape) <- relShedule
       , let startDate = adjustDateTime acquireDate startOffset
             endDate   = adjustDateTime acquireDate endOffset
@@ -158,7 +158,7 @@ deliverySchedule :: DateTime -> DateTime
                  -> DeliveryShape
                  -> DeliverySchedule
 deliverySchedule start end cal shape =
-    DeliverySchedule [(days, shape)]
+    DeliverySchedule [(days, start, end, shape)]
   where
     days = calendarDaysInPeriod cal (start, end)
 

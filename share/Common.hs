@@ -2,7 +2,7 @@
 -- |under the Affero General Public License version 3, the text of which can
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
-----
+--
 -- Module for common types and functions
 module Common where
 
@@ -167,6 +167,18 @@ allOf xs = foldr1 and xs
 -- | Choice between a contract and a zero contract (used for options)
 orZero :: ChoiceId -> Contract -> Contract
 orZero cid c = or cid c zero
+
+-- | Like 'give' but to a named third party rather than the implicit
+-- counterparty.
+--
+giveTo :: PartyName -> Contract -> Contract
+giveTo p = party p . give
+
+-- | Acquire a sub-contract where the counterparty is a named third party
+-- rather than the usual implicit counterparty.
+--
+recieveFrom :: PartyName -> Contract -> Contract
+recieveFrom p = party p
 
 -- * Simple contract templates
 -- | Basic physical leg

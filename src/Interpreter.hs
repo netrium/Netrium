@@ -2,7 +2,6 @@
 -- |under the Affero General Public License version 3, the text of which can
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
---
 {-# LANGUAGE DeriveFunctor #-}
 
 module Interpreter where
@@ -10,7 +9,8 @@ module Interpreter where
 import Contract
 import Observable (Steps(..), VarName)
 import qualified Observable as Obs
-import DecisionTree
+import DecisionTree hiding (Trade)
+import qualified DecisionTree as TD (DecisionStep(Trade))
 import DecisionTreeSimplify
 import Observations
 
@@ -29,8 +29,7 @@ import Control.Exception (assert)
 -- * Main interpreter, using observables and choice data
 -- ---------------------------------------------------------------------------
 
-data Output = Receive Double Tradeable
-            | Provide Double Tradeable
+data Output = Trade Party Party Double Tradeable
             | OptionUntil   ChoiceId Time
             | OptionForever ChoiceId
   deriving (Eq, Show)
@@ -122,11 +121,10 @@ runContract simenv startTime mStopTime mStopWait0 startState =
         Done ->
           result Finished time st
 
-        Trade Party sf t next ->
-          go trace' ((time, Receive sf t) : output) mStopWait next
-
-        Trade Counterparty sf t next ->
-          go trace' ((time, Provide sf t) : output) mStopWait next
+        TD.Trade dir sf t next ->
+          go trace' ((time, Trade p p' sf t) : output) mStopWait next
+          where
+            (p, p') = tradeDirParties dir
 
         Choose p cid next1 next2 ->
           case lookupChoice (choicesMade simenv) cid time of
@@ -379,16 +377,17 @@ instance HTypeable Output where
 
 instance XmlContent Output where
     parseContents = do
-      e@(Elem t _ _) <- element ["Receive","Provide"
-                                ,"OptionUntil","OptionForever"]
+      e@(Elem t _ _) <- element ["Trade","OptionUntil","OptionForever"]
       commit $ interior e $ case t of
-        "Receive"       -> liftM2 Receive parseContents parseContents
-        "Provide"       -> liftM2 Provide parseContents parseContents
+        "Trade"         -> liftM4 Trade parseContents parseContents
+                                        parseContents parseContents
         "OptionUntil"   -> liftM2 OptionUntil   (attrStr "choiceid" e) parseContents
         "OptionForever" -> liftM  OptionForever (attrStr "choiceid" e)
 
-    toContents (Receive sf t) = [mkElemC "Receive" (toContents sf ++ toContents t)]
-    toContents (Provide sf t) = [mkElemC "Provide" (toContents sf ++ toContents t)]
+    toContents (Trade p p' sf t)       = [mkElemC "Trade" (toContents p
+                                                          ++ toContents p'
+                                                          ++ toContents sf
+                                                          ++ toContents t)]
     toContents (OptionUntil cid time') = [mkElemAC "OptionUntil"
                                                    [("choiceid", str2attr cid)]
                                                    (toContents time')]

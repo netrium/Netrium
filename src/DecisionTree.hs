@@ -2,7 +2,6 @@
 -- |under the Affero General Public License version 3, the text of which can
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
---
 {-# LANGUAGE DeriveFunctor, GADTs, PatternGuards #-}
 
 module DecisionTree where
@@ -24,7 +23,7 @@ import Text.XML.HaXml.XmlContent
 -- | A single step in a decision tree
 --
 data DecisionStep x = Done
-                    | Trade Party Double Tradeable x
+                    | Trade TradeDir Double Tradeable x
 
                     | Choose Party ChoiceId     x x
                     | ObserveCond  (Obs Bool)   x x
@@ -36,12 +35,10 @@ data DecisionStep x = Done
                     | Wait [(Obs Bool, Time -> x)] [(ChoiceId, Time -> x)]
   deriving Functor
 
-data Party = Party | Counterparty
+data Party = FirstParty | Counterparty | ThirdParty PartyName
   deriving (Eq, Show)
 
-reverseParty :: Party -> Party
-reverseParty Party = Counterparty
-reverseParty Counterparty = Party
+-- See also data TradeDir below
 
 -- | A full decision tree
 --
@@ -70,7 +67,7 @@ data ProcessState = PSt Time                   -- ^ current time
 data ThreadState  = TSt Contract          -- ^ remaining contract
                         [Obs Bool]        -- ^ 'until' conditions
                         ScaleFactor       -- ^ inherited scaling
-                        Party             -- ^ direction of trade
+                        TradeDir          -- ^ direction of trade
   deriving (Show, Eq)
 
 data Blocked c =
@@ -85,29 +82,26 @@ data Blocked c =
 
 initialProcessState :: Time -> Contract -> ProcessState
 initialProcessState time contract =
-  let initialThread = TSt contract [] 1 Party
+  let initialThread = TSt contract [] 1 TradeDir2To1
    in PSt time [] [initialThread]
 
 
 currentContract :: ProcessState -> Contract
 currentContract (PSt _time blocked runnable) =
     allOf
-      [ giveTo party
+      [ evalTradeDir tradeDir
           (scaleBy scaleFactor
             (foldr until contract untilObss))
       | let threads = runnable ++ map unBlocked blocked
-      , TSt contract untilObss scaleFactor party <- threads
+      , TSt contract untilObss scaleFactor tradeDir <- threads
       , contract /= zero ]
   where
-    giveTo Party        = id
-    giveTo Counterparty = give
-
     scaleBy 1.0 c = c
     scaleBy s   c = scale (konst s) c
 
     unBlocked (BlockedOnWhen          o cth) = update (when o) cth
     unBlocked (BlockedOnAnytime _ cid o cth) = update (anytime cid o) cth
-    update f (TSt c uos sf p) = TSt (f c) uos sf p
+    update f (TSt c uos sf d) = TSt (f c) uos sf d
 
     allOf [] = zero
     allOf xs = foldr1 and xs
@@ -119,41 +113,46 @@ decisionStep (PSt time blocked runnable) =
 
   where
     -- We have at least one runnable thread
-    go bs (TSt c uos sf p:rs) = case c of
+    go bs (TSt c uos sf d:rs) = case c of
       Zero             -> go bs rs
 
-      One t            -> Trade p sf t (PSt time bs rs)
+      One t            -> Trade d sf t (PSt time bs rs)
 
-      Give c1          -> let r' = (TSt c1 uos sf (reverseParty p))
+      Give c1          -> let r' = TSt c1 uos sf (flipTradeDir d)
                            in go bs (r':rs)
 
-      And c1 c2        -> let r1 = TSt c1 uos sf p
-                              r2 = TSt c2 uos sf p
+      Party p c1       -> let d' = setThirdParty p d
+                              r' = TSt c1 uos sf d'
+                           in go bs (r':rs)
+
+      And c1 c2        -> let r1 = TSt c1 uos sf d
+                              r2 = TSt c2 uos sf d
                            in go bs (r1:r2:rs)
 
-      Or cid c1 c2     -> let r1 = TSt c1 uos sf p
-                              r2 = TSt c2 uos sf p
+      Or cid c1 c2     -> let r1 = TSt c1 uos sf d
+                              r2 = TSt c2 uos sf d
+                              (p,_) = tradeDirParties d
                            in Choose p cid (PSt time bs (r1:rs))
                                            (PSt time bs (r2:rs))
 
-      Cond o c1 c2     -> let r1 = TSt c1 uos sf p
-                              r2 = TSt c2 uos sf p
+      Cond o c1 c2     -> let r1 = TSt c1 uos sf d
+                              r2 = TSt c2 uos sf d
                            in ObserveCond o (PSt time bs (r1:rs))
                                             (PSt time bs (r2:rs))
 
-      Scale o c1       -> let r' v = TSt c1 uos (v * sf) p
+      Scale o c1       -> let r' v = TSt c1 uos (v * sf) d
                            in ObserveValue o (\v -> PSt time bs (r' v:rs))
 
-      Read n o c1      -> let r' v = TSt (subst n v c1) uos sf p
+      Read n o c1      -> let r' v = TSt (subst n v c1) uos sf d
                            in ObserveValue o (\v -> PSt time bs (r' v:rs))
 
-      When o c1        -> let b = BlockedOnWhen o (TSt c1 uos sf p)
+      When o c1        -> let b = BlockedOnWhen o (TSt c1 uos sf d)
                            in go (b:bs) rs
 
-      Anytime cid o c1 -> let b = BlockedOnAnytime True cid o (TSt c1 uos sf p)
+      Anytime cid o c1 -> let b = BlockedOnAnytime True cid o (TSt c1 uos sf d)
                            in go (b:bs) rs
 
-      Until o c1       -> let r' = TSt c1 (o:uos) sf p
+      Until o c1       -> let r' = TSt c1 (o:uos) sf d
                            in ObserveCond  o (PSt time bs rs)
                                              (PSt time bs (r':rs))
 
@@ -204,6 +203,7 @@ subst n v c = case c of
       Zero         -> c
       One _        -> c
       Give c1      -> Give  (subst n v c1)
+      Party p c1   -> Party p (subst n v c1)
       And  c1 c2   -> And   (subst n v c1) (subst n v c2)
       Or  id c1 c2 -> Or id (subst n v c1) (subst n v c2)
       Cond o c1 c2 -> Cond  (Obs.subst n v o) (subst n v c1) (subst n v c2)
@@ -222,14 +222,129 @@ each xs = [ (xs !! n, [ x' | (n',x') <- nxs, n' /= n ] )
   where
     nxs = zip [0..] xs
 
+
+-- ---------------------------------------------------------------------------
+-- * Trade directions
+-- ---------------------------------------------------------------------------
+
+-- Warning: whis is all rather subtle.
+
+-- It is for handling the 'party' contract combinator and its interactions with
+-- the 'give' combinator. The point of 'party' is to transfer the rights and
+-- obligations of the implicit counterparty to an explicit named third party.
+-- Using various combinations of 'party' and 'give' we can construct trades in
+-- either direction between any pair of 1st, 2nd and named 3rd parties.
+--
+-- There is an algebra relating the combinators, in particular the laws:
+--
+-- > give    . give    = id
+-- > party q . party p = party p
+--
+-- and a more subtle one:
+--
+-- > give . party q . give . party p = party q . give . party p
+--
+-- This says that once we have a trade between two third parties it is no
+-- longer affected by 'give', because 'give' only swaps between the 1st and 2nd
+-- parties.
+--
+-- Combined, this means that there's actually only a finite number of
+-- combinations of 'give' and 'party', the following eight:
+
+data TradeDir
+   = TradeDir2To1            --        id              2nd --> 1st party
+   | TradeDir1To2            -- give . id              1st --> 2nd party
+
+   | TradeDirPTo1 PartyName  --        party p         named 3rd --> 1st party
+   | TradeDirPTo2 PartyName  -- give . party p         named 3rd --> 2nd party
+
+   | TradeDir1ToP PartyName  --        party p . give  1st --> named 3rd party
+   | TradeDir2ToP PartyName  -- give . party p . give  2nd --> named 3rd party
+
+   | TradeDirPToQ PartyName PartyName -- party q . give . party p          p --> q
+   | TradeDirQToP PartyName PartyName -- party q . give . party p . give   q --> p
+  deriving (Show, Eq)
+
+-- | Give the interpretation of a TradeDir as a combination
+-- of 'party' and 'give'.
+--
+evalTradeDir :: TradeDir -> (Contract -> Contract)
+evalTradeDir TradeDir2To1       = id
+evalTradeDir TradeDir1To2       = give
+evalTradeDir (TradeDirPTo1 p)   =        party p
+evalTradeDir (TradeDirPTo2 p)   = give . party p
+evalTradeDir (TradeDir1ToP p)   =        party p . give
+evalTradeDir (TradeDir2ToP p)   = give . party p . give
+evalTradeDir (TradeDirPToQ p q) = party q . give . party p
+evalTradeDir (TradeDirQToP p q) = party q . give . party p . give
+
+-- | Precompose a TradeDir with 'party' to get a new combined TradeDir.
+--
+-- That is, it respects the law:
+--
+-- > evalTradeDir (setThirdParty p dir) = evalTradeDir dir . party p
+--
+setThirdParty :: PartyName -> TradeDir -> TradeDir
+setThirdParty p TradeDir2To1     = TradeDirPTo1 p    -- id   . party p     ~~ TradeDirPTo1 p
+setThirdParty p TradeDir1To2     = TradeDirPTo2 p    -- give . party p     ~~ TradeDirPTo2 p
+setThirdParty p (TradeDirPTo1 q) = TradeDirPTo1 p    --        party q . party p =        party p  ~~ TradeDirPTo1 p
+setThirdParty p (TradeDirPTo2 q) = TradeDirPTo2 p    -- give . party q . party p = give . party p  ~~ TradeDirPTo2 p
+setThirdParty p (TradeDir1ToP q) = TradeDirPToQ p q  --        party q . give . party p                            ~~ TradeDirPToQ p q
+setThirdParty p (TradeDir2ToP q) = TradeDirPToQ p q  -- give . party q . give . party p = party q . give . party p ~~ TradeDirPToQ p q
+setThirdParty p (TradeDirPToQ q r) = TradeDirPToQ p r  -- party r . give . party q .        party p = party r . give . party p ~~ TradeDirPToQ p r
+setThirdParty p (TradeDirQToP q r) = TradeDirPToQ p q  -- party r . give . party q . give . party p = party q . give . party p ~~ TradeDirPToQ p q
+
+-- | Precompose a TradeDir with 'give' to get a new combined TradeDir.
+--
+-- That is, it respects the law:
+--
+-- > evalTradeDir (flipTradeDir dir) = evalTradeDir dir . give
+--
+flipTradeDir :: TradeDir -> TradeDir
+flipTradeDir  TradeDir2To1    = TradeDir1To2   -- id . give = give
+flipTradeDir  TradeDir1To2    = TradeDir2To1   -- give . give = id
+flipTradeDir (TradeDirPTo1 p) = TradeDir1ToP p -- party p . give
+flipTradeDir (TradeDirPTo2 p) = TradeDir2ToP p -- give . party p . give
+flipTradeDir (TradeDir1ToP p) = TradeDirPTo1 p -- party p . give . give = party p
+flipTradeDir (TradeDir2ToP p) = TradeDirPTo2 p -- give . party p . give . give = give . party p
+flipTradeDir (TradeDirPToQ p q) = TradeDirQToP p q -- party q . give . party p . give
+flipTradeDir (TradeDirQToP p q) = TradeDirPToQ p q -- party q . give . party p . give . give = party q . give . party p
+
+-- | Return the two parties in a TradeDir in the order @(recieving party, giving party)@.
+--
+tradeDirParties :: TradeDir -> (Party, Party)
+tradeDirParties  TradeDir2To1      = (FirstParty,   Counterparty)
+tradeDirParties  TradeDir1To2      = (Counterparty, FirstParty)
+tradeDirParties (TradeDirPTo1 p)   = (FirstParty,   ThirdParty p)
+tradeDirParties (TradeDirPTo2 p)   = (Counterparty, ThirdParty p)
+tradeDirParties (TradeDir1ToP p)   = (ThirdParty p, FirstParty)
+tradeDirParties (TradeDir2ToP p)   = (ThirdParty p, Counterparty)
+tradeDirParties (TradeDirPToQ p q) = (ThirdParty q, ThirdParty p)
+tradeDirParties (TradeDirQToP p q) = (ThirdParty p, ThirdParty q)
+
+
 -- ---------------------------------------------------------------------------
 -- * Display tree instance
 -- ---------------------------------------------------------------------------
 
 instance Show (DecisionStep x) where
   show  Done                = "Done"
-  show (Trade Party n t _)  = "Receive " ++ show n ++ " " ++ show t
-  show (Trade _     n t _)  = "Provide " ++ show n ++ " " ++ show t
+  show (Trade dir n t _)    =  case dir of
+                                 TradeDir2To1   -> "Receive " ++ quantityOfStuff
+                                 TradeDir1To2   -> "Provide " ++ quantityOfStuff
+
+                                 TradeDirPTo1 p -> "Receive from " ++ partyQuantityOfStuff p
+                                 TradeDirPTo2 p -> "Counterparty receives from " ++ partyQuantityOfStuff p
+
+                                 TradeDir1ToP p -> "Provide to " ++ partyQuantityOfStuff p
+                                 TradeDir2ToP p -> "Counterparty provides to " ++ partyQuantityOfStuff p
+
+                                 TradeDirPToQ p q -> p ++ " provides to " ++ q ++ " " ++ quantityOfStuff
+                                 TradeDirQToP p q -> q ++ " provides to " ++ p ++ " " ++ quantityOfStuff
+                               where
+                                 quantityOfStuff = show n ++ " " ++ show t
+                                 partyQuantityOfStuff p = p ++ " " ++ quantityOfStuff
+
   show (Choose p cid _ _)  = "Choose " ++ show p ++ " " ++ cid
   show (ObserveCond  o _ _) = "ObserveCond " ++ show o
   show (ObserveValue o _)   = "ObserveValue " ++ show o
@@ -241,15 +356,30 @@ instance Show (DecisionStep x) where
 instance Display DecisionTree where
   toTree (DecisionTree time st) = case st of
     Done                -> Node "done" []
-    Trade Party n t st1  -> Node ("receive " ++ show n ++ " " ++ show t ++ "\n" ++ show time)
-                                [toTree st1]
-    Trade _     n t st1  -> Node ("provide " ++ show n ++ " " ++ show t ++ "\n" ++ show time)
-                                [toTree st1]
+    Trade dir n t st1   -> Node descr [toTree st1]
+                           where
+                             descr = dirDescr ++ " " ++ show n ++ " " ++ show t
+                                              ++ "\n" ++ show time
+                             dirDescr = case dir of
+                               TradeDir2To1 -> "receive"
+                               TradeDir1To2 -> "provide"
 
-    Choose Party cid st1 st2 -> Node ("choose " ++ cid ++ "\n" ++ show time)
-                                        [toTree st1, toTree st2]
-    Choose _     cid st1 st2 -> Node ("counterparty choice " ++ cid ++ "\n" ++ show time)
-                                        [toTree st1, toTree st2]
+                               TradeDirPTo1 p -> "receive from " ++ p
+                               TradeDirPTo2 p -> "counterparty receives from " ++ p
+
+                               TradeDir1ToP p -> "provide to " ++ p
+                               TradeDir2ToP p -> "counterparty provides to " ++ p
+
+                               TradeDirPToQ p q -> p ++ " provides to " ++ q
+                               TradeDirQToP p q -> q ++ " provides to " ++ p
+
+    Choose p cid st1 st2 -> Node (partyDescr ++ cid ++ "\n" ++ show time)
+                                 [toTree st1, toTree st2]
+                            where
+                              partyDescr = case p of
+                                FirstParty   -> "choose "
+                                Counterparty -> "counterparty choice "
+                                ThirdParty p -> "3rd party " ++ p ++ " choice "
     ObserveCond obs st1 st2 -> Node "observe cond" [toTree obs
                                                    ,toTree st1
                                                    ,toTree st2]
@@ -272,14 +402,43 @@ instance HTypeable Party where
 
 instance XmlContent Party where
   parseContents = do
-    e@(Elem t _ _) <- element ["Party", "Counterparty"]
+    e@(Elem t _ _) <- element ["Party", "Counterparty", "ThirdParty"]
     commit $ interior e $ case t of
-      "Party"        -> return Party
+      "Party"        -> return FirstParty
       "Counterparty" -> return Counterparty
+      "ThirdParty"   -> liftM  ThirdParty text
 
-  toContents Party        = [mkElemC "Party"  []]
-  toContents Counterparty = [mkElemC "Counterparty" []]
+  toContents FirstParty     = [mkElemC "Party"  []]
+  toContents Counterparty   = [mkElemC "Counterparty" []]
+  toContents (ThirdParty p) = [mkElemC "ThirdParty" (toText p)]
 
+instance HTypeable TradeDir where
+    toHType _ = Defined "TradeDir" [] []
+
+instance XmlContent TradeDir where
+  parseContents = do
+    e@(Elem t _ _) <- element ["TradeDir2To1","TradeDir1To2"
+                              ,"TradeDirPTo1","TradeDirPTo2"
+                              ,"TradeDir1ToP","TradeDir2ToP"
+                              ,"TradeDirPToQ","TradeDirQToP"]
+    commit $ interior e $ case t of
+      "TradeDir2To1" -> return TradeDir2To1
+      "TradeDir1To2" -> return TradeDir1To2
+      "TradeDirPTo1" -> liftM TradeDirPTo1 text
+      "TradeDirPTo2" -> liftM TradeDirPTo2 text
+      "TradeDir1ToP" -> liftM TradeDir1ToP text
+      "TradeDir2ToP" -> liftM TradeDir2ToP text
+      "TradeDirPToQ" -> liftM2 TradeDirPToQ text text
+      "TradeDirQToP" -> liftM2 TradeDirQToP text text
+
+  toContents TradeDir2To1     = [mkElemC "TradeDir2To1"  []]
+  toContents TradeDir1To2     = [mkElemC "TradeDir1To2"  []]
+  toContents (TradeDirPTo1 p) = [mkElemC "TradeDirPTo1" (toText p)]
+  toContents (TradeDirPTo2 p) = [mkElemC "TradeDirPTo2" (toText p)]
+  toContents (TradeDir1ToP p) = [mkElemC "TradeDir1ToP" (toText p)]
+  toContents (TradeDir2ToP p) = [mkElemC "TradeDir2ToP" (toText p)]
+  toContents (TradeDirPToQ p q) = [mkElemC "TradeDirPToQ" (toText p ++ toText q)]
+  toContents (TradeDirQToP p q) = [mkElemC "TradeDirQToP" (toText p ++ toText q)]
 
 instance HTypeable (Blocked c) where
     toHType _ = Defined "Blocked" [] []
@@ -320,10 +479,10 @@ instance XmlContent ThreadState where
       liftM4 TSt parseContents
                  (inElement "UntilConditions" (fmap (map unObsCondition) parseContents))
                  parseContents parseContents
-  toContents (TSt c obss sf pty) =
+  toContents (TSt c obss sf dir) =
     [mkElemC "ThreadState" (toContents c ++
                             mkElemC "UntilConditions" (toContents (map ObsCondition obss)) :
-                            toContents sf ++ toContents pty)]
+                            toContents sf ++ toContents dir)]
 
 instance HTypeable ProcessState where
     toHType _ = Defined "ProcessState" [] []

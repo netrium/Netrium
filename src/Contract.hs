@@ -3,7 +3,6 @@
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
 --
---
 -- The definition of the basic contract language
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
@@ -12,7 +11,7 @@ module Contract (
     -- ** The contract type and primitives
     Contract(..),
     zero, one,
-    and, give,
+    and, give, party,
     or, cond,
     scale, ScaleFactor,
     when, anytime, until,
@@ -24,7 +23,7 @@ module Contract (
     Currency(..), CashFlowType(..), Portfolio(..),
 
     -- ** Choice identifiers
-    ChoiceId,
+    ChoiceId, PartyName,
 
     -- * Observables
     Obs,
@@ -80,6 +79,9 @@ type ScaleFactor  = Double
 -- | Choice label, used for options
 type ChoiceId = String
 
+-- | Name of a third party mentioned in a contract
+type PartyName = String
+
 -- | The main contract data type
 --
 data Contract
@@ -87,6 +89,7 @@ data Contract
    | One  Tradeable
 
    | Give Contract
+   | Party PartyName Contract
    | And  Contract Contract
 
    | Or      ChoiceId     Contract Contract
@@ -115,6 +118,10 @@ one = One
 -- | Swap the rights and obligations of the party and counterparty.
 give :: Contract -> Contract
 give = Give
+
+-- | Make a contract with a named 3rd party as the counterparty.
+party :: PartyName -> Contract -> Contract
+party = Party
 
 -- | If you acquire @c1 `and` c2@ you immediately acquire /both/ @c1@ and @c2@.
 and :: Contract -> Contract -> Contract
@@ -178,6 +185,7 @@ instance Display Contract where
   toTree Zero           = Node "zero"         []
   toTree (One  t)       = Node "one"          [Node (show t) []]
   toTree (Give c)       = Node "give"         [toTree c]
+  toTree (Party p c)    = Node ("party " ++ p)[toTree c]
   toTree (And c1 c2)    = Node "and"          [toTree c1, toTree c2]
   toTree (Or cid c1 c2) = Node ("or " ++ cid) [toTree c1, toTree c2]
   toTree (Cond o c1 c2) = Node "cond"         [toTree o, toTree c1, toTree c2]
@@ -264,11 +272,12 @@ instance HTypeable Contract where
 instance XmlContent Contract where
   parseContents = do
     e@(Elem t _ _) <- element ["Zero","When","Until","Scale","Read"
-                              ,"Or","One","Give","Cond","Anytime","And"]
+                              ,"Or","One","Give","Party","Cond","Anytime","And"]
     commit $ interior e $ case t of
       "Zero"    -> return Zero
       "One"     -> liftM  One     parseContents
       "Give"    -> liftM  Give    parseContents
+      "Party"   -> liftM2 Party   (attrStr "name" e) parseContents
       "And"     -> liftM2 And     parseContents parseContents
       "Or"      -> liftM3 Or      (attrStr "choiceid" e) parseContents parseContents
       "Cond"    -> liftM3 Cond    parseObsCond  parseContents parseContents
@@ -281,6 +290,8 @@ instance XmlContent Contract where
   toContents Zero           = [mkElemC  "Zero" []]
   toContents (One t)        = [mkElemC  "One"  (toContents t)]
   toContents (Give c)       = [mkElemC  "Give" (toContents c)]
+  toContents (Party p c)    = [mkElemAC "Party" [("name", str2attr p)]
+                                                (toContents c)]
   toContents (And    c1 c2) = [mkElemC  "And"  (toContents c1 ++ toContents c2)]
   toContents (Or cid c1 c2) = [mkElemAC "Or"   [("choiceid", str2attr cid)]
                                                (toContents c1 ++ toContents c2)]

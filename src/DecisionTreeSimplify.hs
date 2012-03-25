@@ -2,7 +2,6 @@
 -- |under the Affero General Public License version 3, the text of which can
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
---
 {-# LANGUAGE DeriveFunctor, GADTs, PatternGuards #-}
 
 module DecisionTreeSimplify (
@@ -35,7 +34,7 @@ decisionStepWithTime :: ProcessState -> (DecisionStep ProcessState, Time)
 decisionStepWithTime st@(PSt time _ _) = case decisionStep st of
     Done                   -> (Done, time)
 
-    Trade p sf t st1       -> (Trade p sf t st1, time)
+    Trade d sf t st1       -> (Trade d sf t st1, time)
 
     Choose p id st1 st2    -> (Choose p id st1 st2, time)
 

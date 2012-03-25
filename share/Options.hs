@@ -2,7 +2,7 @@
 -- |under the Affero General Public License version 3, the text of which can
 -- |be found in agpl.txt, or any later version of the AGPL, unless otherwise
 -- |noted. 
-----
+--
 -- Module for options
 --
 -- Options are built up as follows:
@@ -222,23 +222,3 @@ commoditySpreadOption cid legs exerciseDiffTime paymentDiffTime opDir strikePric
 
        optionPremium  = withPremiumSchedule premium pCur [premiumTime]
        premiumTime    = adjustDateTime exerciseTime paymentDiffTime
-
-
--- Need tidying up
-commoditySpread :: [( Market
-                   , Volume
-                   , Price, Currency, CashFlowType
-                   , SegmentedSchedule
-                   , FeeCalc )]                       -- ^List of underlying legs
-                -> Contract
-commoditySpread legs =
-   allOf
-     [ allOf [ forward fee m pr cur cft vol seg seg
-               | (m, pr, cur, cft, vol, seg, fee) <- groupedLeg ]
-     | groupedLeg <- groupedLegs ]
-
- where
-   groupedLegs =
-     transpose
-       [ [ (m, pr, cur, cft, vol, seg, fee) | seg <- sch ]
-       | (m, pr, cur, cft, vol, sch, fee) <- legs ]
