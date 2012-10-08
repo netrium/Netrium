@@ -5,11 +5,10 @@ contract =
 
   where
     -- A currency basket option in GBP on USD and EUR
-	-- By exercising the option the holder gets 100 EUR and 100 USD
-	-- for 200 GBP times the strike price
+    -- By exercising the option the holder gets 100 EUR and 100 USD
+    -- for 200 GBP times the strike price
 
-    underlying sp = (financial quantity usd cash)
-			  `and` (financial quantity eur cash)
+    underlying sp = (financial quantity usd cash) `and` (financial quantity eur cash)
               `and` give (financial (sp * 2 * quantity) gbp cash)
     quantity = 100
 
@@ -17,6 +16,6 @@ contract =
 
     exerciseDetails = europeanExercise (date 2013 06 01) strikePrice
 
-	-- the strike price can be set at e.g. the weighted value of the basket currencies in gbp
-	
+    -- the strike price can be set at e.g. the weighted value of the basket currencies in gbp
+
     strikePrice = 0.78
