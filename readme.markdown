@@ -4,14 +4,17 @@ Netrium enables financial engineers to precisely describe and execute both simpl
 
 The Netrium project offers a Haskell based domain specific language and dedicated compiler to support the definition and operational exe­cu­tion of fin­an­cial and phys­ical energy con­tracts, with arbit­rary option­al­ity and con­di­tion­al­ity. This helps trad­ing desks con­trol the oper­a­tional risk asso­ci­ated with non-standard trans­ac­tions. The imple­ment­a­tion is based on the aca­demic paper [Adven­tures in Fin­an­cial Engin­eer­ing](http://research.microsoft.com/en-us/um/people/simonpj/papers/financial-contracts/contracts-icfp.htm) by Simon Peyton Jones and Jean-Marc Eber, with a range of extensions to allow for path-dependent contracts and support for physical commodities.
 
+Note that this code is no longer actively maintained. If you would like to make modifications, please do feel free to fork or submit a pull request. Pull requests that meet the existing code quality will be applied as and when a contributor has time to review it.
+
 ### License
 
-The Netrium codebase is dual licensed under AGPLv3 and a commercial license.
+The Netrium codebase is licensed under the permissive MIT license.
+
+We ask that any ports to other languages retain reference to netrium.org.
 
 ### Contacts
 
 * For further information about the software, please contact: opensource@netrium.org
-* For further information regarding the licensing, please contact: licenses@netrium.org
 
 ### Documentation
 
@@ -22,4 +25,4 @@ The following documentation will be useful to understand the Netrium Language an
 
 ### Copyright
 
-Netrium is Copyright 2009-2012 Netrium Consulting Ltd.
+Netrium is Copyright 2009-2015 Netrium.org Contributors.

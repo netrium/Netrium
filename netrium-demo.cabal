@@ -3,7 +3,7 @@ version:            0.6.0
 synopsis:           Contract normaliser and simulator
 author:             Well-Typed LLP
 maintainer:         Well-Typed LLP
-copyright:          2009-2012 Netrium Consulting Ltd
+copyright:          2009-2015 Anthony Waite, Dave Hewett, Shaun Laurens and other contributors
 
 build-type:         Simple
 cabal-version:      >= 1.8
