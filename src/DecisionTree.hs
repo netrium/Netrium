@@ -59,15 +59,17 @@ decisionTree t c = unfoldDecisionTree
 -- * Basic step
 -- ---------------------------------------------------------------------------
 
-data ProcessState = PSt Time                   -- ^ current time
-                        [Blocked ThreadState]  -- ^ blocked
-                        [ThreadState]          -- ^ runnable
+-- | Current time, blocked, and runnable 'ThreadState's
+data ProcessState = PSt Time                   -- current time
+                        [Blocked ThreadState]  -- blocked
+                        [ThreadState]          -- runnable
   deriving (Show, Eq)
 
-data ThreadState  = TSt Contract          -- ^ remaining contract
-                        [Obs Bool]        -- ^ 'until' conditions
-                        ScaleFactor       -- ^ inherited scaling
-                        TradeDir          -- ^ direction of trade
+-- | Remaining contract, 'until' conditions, inherited scaling, and direction of trade
+data ThreadState  = TSt Contract          -- remaining contract
+                        [Obs Bool]        -- 'until' conditions
+                        ScaleFactor       -- inherited scaling
+                        TradeDir          -- direction of trade
   deriving (Show, Eq)
 
 data Blocked c =
