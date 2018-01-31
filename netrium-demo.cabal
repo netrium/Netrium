@@ -43,7 +43,7 @@ library
                     containers >= 0.3 && < 1,
                     process    >= 1.0 && < 2,
                     time       >= 1.1 && < 2,
-                    HaXml      == 1.20.*
+                    HaXml      == 1.25.*
 
 executable normalise
   hs-source-dirs:   tool
@@ -53,7 +53,7 @@ executable normalise
                     process    >= 1.0 && < 2,
                     filepath   >= 1.1 && < 2,
                     directory  >= 1.0 && < 2,
-                    HaXml      == 1.20.*
+                    HaXml      == 1.25.*
 
 executable simulate
   hs-source-dirs:   tool
@@ -61,8 +61,8 @@ executable simulate
   build-depends:    netrium-demo,
                     base       >= 3.0 && < 5,
                     containers >= 0.3 && < 1,
-                    HaXml      == 1.20.*,
-                    pretty     == 1.0.*,
+                    HaXml      == 1.25.*,
+                    pretty     == 1.1.3.*,
                     directory  >= 1.0 && < 2,
                     filepath
 
@@ -74,4 +74,4 @@ executable visualise
                     directory  >= 1.0 && < 2,
                     filepath,
                     process    >= 1.0 && < 2,
-                    HaXml      == 1.20.*
+                    HaXml      == 1.25.*
