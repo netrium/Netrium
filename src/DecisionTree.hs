@@ -13,6 +13,7 @@ import Display
 import Prelude hiding (product, until, and)
 import Data.List hiding (and)
 import Control.Monad hiding (when)
+import Text.XML.HaXml.Namespaces (localName)
 import Text.XML.HaXml.XmlContent
 
 -- ---------------------------------------------------------------------------
@@ -402,7 +403,7 @@ instance HTypeable Party where
 instance XmlContent Party where
   parseContents = do
     e@(Elem t _ _) <- element ["Party", "Counterparty", "ThirdParty"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "Party"        -> return FirstParty
       "Counterparty" -> return Counterparty
       "ThirdParty"   -> liftM  ThirdParty text
@@ -420,7 +421,7 @@ instance XmlContent TradeDir where
                               ,"TradeDirPTo1","TradeDirPTo2"
                               ,"TradeDir1ToP","TradeDir2ToP"
                               ,"TradeDirPToQ","TradeDirQToP"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "TradeDir2To1" -> return TradeDir2To1
       "TradeDir1To2" -> return TradeDir1To2
       "TradeDirPTo1" -> liftM TradeDirPTo1 text
@@ -445,7 +446,7 @@ instance HTypeable (Blocked c) where
 instance XmlContent c => XmlContent (Blocked c) where
   parseContents = do
     e@(Elem t _ _) <- element ["BlockedOnWhen", "BlockedOnAnytime"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "BlockedOnWhen"    -> liftM2 BlockedOnWhen (fmap unObsCondition parseContents)
                                                  parseContents
       "BlockedOnAnytime" -> liftM4 BlockedOnAnytime parseContents

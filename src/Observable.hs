@@ -47,6 +47,7 @@ import Data.List (minimumBy)
 import Data.Ord (comparing)
 import Control.Monad
 import Text.Show.Functions ()
+import Text.XML.HaXml.Namespaces (localName)
 import Text.XML.HaXml.XmlContent
   (XMLParser(), Element(..), Content(), element, interior, text, toText, mkElemC)
 
@@ -728,7 +729,7 @@ parseObsReal = do
   e@(Elem t _ _) <- element ["Const","Var","NamedVal","IfThen"
                             ,"Neg","Abs","Sqrt","Exp","Log","Sin","Cos","Asin","Acos","Atan","Sinh","Cosh","Asinh","Acosh","Atanh","Add","Sub","Mul","Div","Min","Max"]
 
-  case t of
+  case localName t of
     "Const"    -> interior e $ liftM Const readText
     "Var"      -> interior e $ liftM Var text
     "NamedVal" -> interior e $ liftM NamedVal text
@@ -764,7 +765,7 @@ parseObsCond = do
   e@(Elem t _ _) <- element ["Const","NamedCond","At", "After","Before","IfThen"
                             ,"Not","And","Or","Eq","Gt","Gte","Lt","Lte"]
 
-  case t of
+  case localName t of
     "Const"     -> interior e $ liftM Const readText
     "NamedCond" -> interior e $ liftM NamedCond text
 

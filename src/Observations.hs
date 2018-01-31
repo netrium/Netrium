@@ -16,6 +16,8 @@ import qualified Data.Map as Map
 import Data.Map (Map)
 import Data.Monoid
 import Data.Function
+import Text.XML.HaXml.Namespaces (localName)
+import Text.XML.HaXml.Types (QName(..))
 import Text.XML.HaXml.XmlContent
 
 
@@ -178,22 +180,22 @@ instance HTypeable ObservationSeries where
 instance XmlContent ObservationSeries where
   parseContents = do
     e@(Elem t _ _) <- element ["ObservationSeries"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "ObservationSeries" -> do
-        seriesType <- attrRead "type" e
-        seriesVar  <- attrStr  "var"  e
+        seriesType <- attrRead (N "type") e
+        seriesVar  <- attrStr  (N "var")  e
         case seriesType of
           Double -> liftM (ObservationsSeriesDouble seriesVar) parseContents
           Bool   -> liftM (ObservationsSeriesBool   seriesVar) parseContents
 
   toContents (ObservationsSeriesBool var ts) =
-    [mkElemAC "ObservationSeries" [("type", str2attr "Bool")
-                                  ,("var",  str2attr var)]
-                                  (toContents ts)]
+    [mkElemAC (N "ObservationSeries") [(N "type", str2attr "Bool")
+                                      ,(N "var",  str2attr var)]
+                                      (toContents ts)]
   toContents (ObservationsSeriesDouble var ts) =
-    [mkElemAC "ObservationSeries" [("type", str2attr "Double")
-                                  ,("var",  str2attr var)]
-                                  (toContents ts)]
+    [mkElemAC (N "ObservationSeries") [(N "type", str2attr "Double")
+                                      ,(N "var",  str2attr var)]
+                                      (toContents ts)]
 
 
 data ChoiceSeries = ChoiceSeries (XMLTimedEvents Choice)
@@ -209,7 +211,7 @@ instance HTypeable Choice where
 instance XmlContent ChoiceSeries where
   parseContents = do
     e@(Elem t _ _) <- element ["Choices"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "Choices" -> liftM ChoiceSeries parseContents
 
   toContents (ChoiceSeries cs) = [mkElemC "Choices" (toContents cs)]
@@ -217,18 +219,18 @@ instance XmlContent ChoiceSeries where
 instance XmlContent Choice where
   parseContents = do
     e@(Elem t _ _) <- element ["Choice"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "Choice" -> do
-        cid <- attrStr "choiceid" e
+        cid <- attrStr (N "choiceid") e
         content <- parseContents
         case content of
           Nothing -> return (AnytimeChoice cid)
           Just m  -> return (OrChoice cid m)
 
   toContents (OrChoice cid m)    =
-    [mkElemAC "Choice" [("choiceid", str2attr cid)] (toContents m)]
+    [mkElemAC (N "Choice") [(N "choiceid", str2attr cid)] (toContents m)]
   toContents (AnytimeChoice cid) =
-    [mkElemAC "Choice" [("choiceid", str2attr cid)] []]
+    [mkElemAC (N "Choice") [(N "choiceid", str2attr cid)] []]
 
 
 data Timed a = Timed Time a
@@ -240,7 +242,7 @@ instance HTypeable SeriesEnd where
 instance XmlContent SeriesEnd where
   parseContents = do
     e@(Elem t _ _) <- element ["SeriesUnbounded", "SeriesEnds"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName  t of
       "SeriesUnbounded" -> return Unbounded
       "SeriesEnds"      -> liftM Bounded parseContents
 

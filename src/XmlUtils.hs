@@ -4,19 +4,20 @@
 {-# OPTIONS_HADDOCK hide #-}
 module XmlUtils where
 
+import Text.XML.HaXml.Namespaces (localName)
 import Text.XML.HaXml.XmlContent
 import Data.Time
 
 attrStr n (Elem _ as _) =
     case lookup n as of
-      Nothing -> fail ("expected attribute " ++ n)
+      Nothing -> fail ("expected attribute " ++ localName n)
       Just av -> return (attr2str av)
 
 attrRead n e = do
     str <- attrStr n e
     case reads str of
       [(v,_)] -> return v
-      _       -> fail $ "cannot parse attribute " ++ n ++ ": " ++ str
+      _       -> fail $ "cannot parse attribute " ++ localName n ++ ": " ++ str
 
 mkElemAC x as cs = CElem (Elem x as cs) ()
 
@@ -31,7 +32,7 @@ readText = do
 instance XmlContent Bool where
   parseContents = do
     e@(Elem t _ _) <- element ["True", "False"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "True"  -> return True
       "False" -> return False
 

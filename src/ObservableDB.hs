@@ -4,6 +4,8 @@
 module ObservableDB where
 
 import Control.Monad              (liftM, liftM2)
+import Text.XML.HaXml.Namespaces  (localName)
+import Text.XML.HaXml.Types       (QName(..))
 import Text.XML.HaXml.XmlContent
 
 import XmlUtils
@@ -31,11 +33,11 @@ instance HTypeable ObservableDecl where
 instance XmlContent ObservableDecl where
   parseContents = do
     e@(Elem t _ _) <- element ["ObservableDecl"]
-    commit $ interior e $ case t of
-      "ObservableDecl" -> liftM2 ObservableDecl (attrStr "name" e) parseContents
+    commit $ interior e $ case localName t of
+      "ObservableDecl" -> liftM2 ObservableDecl (attrStr (N "name") e) parseContents
 
   toContents (ObservableDecl n t) =
-    [mkElemAC "ObservableDecl" [("name", str2attr n)] (toContents t)]
+    [mkElemAC (N "ObservableDecl") [(N "name", str2attr n)] (toContents t)]
 
 instance HTypeable ObservableType where
   toHType _ = Defined "ObservableType" [] []
@@ -43,7 +45,7 @@ instance HTypeable ObservableType where
 instance XmlContent ObservableType where
   parseContents = do
     e@(Elem t _ _) <- element ["Double", "Bool"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "Double" -> return Double
       "Bool"   -> return Bool
 

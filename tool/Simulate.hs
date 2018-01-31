@@ -19,6 +19,7 @@ import System.Exit
 import System.Console.GetOpt
 import System.FilePath
 
+import Text.XML.HaXml.Namespaces (localName)
 import Text.XML.HaXml.Types
 import Text.XML.HaXml.Pretty (document)
 import Text.XML.HaXml.XmlContent
@@ -149,7 +150,7 @@ renderContractRunXml (SimOutputs _ outs stopReason stopTime residualContract sim
 
   where
     prolog = Prolog (Just (XMLDecl "1.0" Nothing Nothing)) [] Nothing []
-    body   = Elem "SimulationResult" [] $
+    body   = Elem (N "SimulationResult") [] $
                      toContents (fromTimedEvents outs)
                   ++ toContents stopReason
                   ++ toContents stopTime
@@ -169,7 +170,7 @@ instance HTypeable SimulationInputs where
 instance XmlContent SimulationInputs where
   parseContents = do
     e@(Elem t _ _) <- element ["SimulationInputs"]
-    commit $ interior e $ case t of
+    commit $ interior e $ case localName t of
       "SimulationInputs" -> do
         startTime    <- parseContents
         mStopTime    <- parseContents
