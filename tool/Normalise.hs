@@ -5,7 +5,7 @@ module Main where
 
 import ObservableDB
 import UnitsDB
-import Paths_netrium_demo
+import Paths_netrium
 
 import Control.Monad      (liftM, liftM2, when)
 import Data.Version

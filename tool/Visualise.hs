@@ -8,7 +8,7 @@ module Main where
 import Contract
 import DecisionTreeSimplify
 import Display
-import Paths_netrium_demo
+import Paths_netrium
 
 import Data.Maybe
 import Data.Version
