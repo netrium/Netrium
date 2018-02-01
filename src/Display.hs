@@ -14,7 +14,7 @@ module Display (
   ) where
 
 import Data.Tree
-import System.Cmd
+import System.Process
 
 import WriteDotGraph
 
