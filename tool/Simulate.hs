@@ -7,7 +7,7 @@ import Contract (Contract, Time)
 import Interpreter
 import DecisionTree
 import Observations
-import Paths_netrium_demo
+import Paths_netrium
 
 import Data.Maybe
 import Data.Monoid
