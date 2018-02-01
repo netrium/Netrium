@@ -1,9 +1,13 @@
-name:               netrium-demo
+name:               netrium
 version:            0.6.0
 synopsis:           Contract normaliser and simulator
+description:        Netrium enables financial engineers to precisely describe and execute both simple and exotic contracts with both financial and physical delivery.
+category:           Finance
 author:             Well-Typed LLP
 maintainer:         Well-Typed LLP
 copyright:          2009-2015 Anthony Waite, Dave Hewett, Shaun Laurens and other contributors
+license:            MIT
+license-file:       license.txt
 
 build-type:         Simple
 cabal-version:      >= 1.8
@@ -48,7 +52,7 @@ library
 executable normalise
   hs-source-dirs:   tool
   main-is:          Normalise.hs
-  build-depends:    netrium-demo,
+  build-depends:    netrium,
                     base       >= 3.0 && < 5,
                     process    >= 1.0 && < 2,
                     filepath   >= 1.1 && < 2,
@@ -58,7 +62,7 @@ executable normalise
 executable simulate
   hs-source-dirs:   tool
   main-is:          Simulate.hs
-  build-depends:    netrium-demo,
+  build-depends:    netrium,
                     base       >= 3.0 && < 5,
                     containers >= 0.3 && < 1,
                     HaXml      == 1.25.*,
@@ -69,9 +73,13 @@ executable simulate
 executable visualise
   hs-source-dirs:   tool
   main-is:          Visualise.hs
-  build-depends:    netrium-demo,
+  build-depends:    netrium,
                     base       >= 3.0 && < 5,
                     directory  >= 1.0 && < 2,
                     filepath,
                     process    >= 1.0 && < 2,
                     HaXml      == 1.25.*
+
+source-repository head
+  type: git
+  location: https://github.com/netrium/Netrium
