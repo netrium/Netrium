@@ -3,7 +3,7 @@
 --
 module UnitsDB where
 
-import Control.Monad              (liftM, liftM2)
+import Control.Monad              (liftM)
 import Text.XML.HaXml.Namespaces  (localName)
 import Text.XML.HaXml.Types       (QName(..))
 import Text.XML.HaXml.XmlContent
@@ -43,6 +43,7 @@ instance XmlContent UnitDecl where
       "UnitDecl"          -> liftM UnitDecl          (attrStr (N "name") e)
       "LocationDecl"      -> liftM LocationDecl      (attrStr (N "name") e)
       "CurrencyDecl"      -> liftM CurrencyDecl      (attrStr (N "name") e)
+      x                   -> fail $ "cannot parse " ++ x
 
   toContents (CommodityDecl n) =
     [mkElemAC (N "CommodityDecl") [(N "name", str2attr n)] []]

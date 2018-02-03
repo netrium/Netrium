@@ -36,11 +36,11 @@ module Contract (
   ) where
 
 import Observable
-         ( Time, mkdate
+         ( Time
          , Obs, konst, var, primVar, primCond, at, before, after, between
          , (%==), (%>), (%>=), (%<), (%<=)
          , (%&&), (%||), (%+), (%-), (%*), (%/)
-         , ifthen, negate, not, max, min, abs
+         , ifthen, negate, max, min, abs
          , parseObsCond, parseObsReal, printObs )
 import Display
 import XmlUtils
@@ -208,6 +208,7 @@ instance XmlContent Tradeable where
                                       parseContents
       "Financial" -> liftM3 Financial parseContents parseContents
                                       parseContents
+      x           -> fail $ "cannot parse " ++ x
 
   toContents (Physical c u l d p) =
     [mkElemC "Physical"  (toContents c ++ toContents u
@@ -286,6 +287,7 @@ instance XmlContent Contract where
       "When"    -> liftM2 When    parseObsCond  parseContents
       "Anytime" -> liftM3 Anytime (attrStr (N "choiceid") e) parseObsCond  parseContents
       "Until"   -> liftM2 Until   parseObsCond  parseContents
+      x         -> fail $ "cannot parse " ++ x
 
   toContents Zero           = [mkElemC  "Zero" []]
   toContents (One t)        = [mkElemC  "One"  (toContents t)]

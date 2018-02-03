@@ -207,7 +207,10 @@ ifthen   = IfThen
 not    :: Obs Bool   -> Obs Bool
 not    = UnOp Not
 
+min    :: Obs Double -> Obs Double -> Obs Double
 min    = BinOp Min
+
+max    :: Obs Double -> Obs Double -> Obs Double
 max    = BinOp Max
 
 -- * Operators
@@ -758,6 +761,7 @@ parseObsReal = do
     "Max" -> interior e $ liftM2 (BinOp Max) parseObsReal parseObsReal
 
     "IfThen" -> interior e $ liftM3 IfThen parseObsCond parseObsReal parseObsReal
+    x        -> fail $ "cannot parse " ++ x
 
 -- | XML parser for condition observables
 parseObsCond :: XMLParser (Obs Bool)
@@ -783,6 +787,7 @@ parseObsCond = do
     "Lte" -> interior e $ liftM2 (BinOp Lte) parseObsReal parseObsReal
 
     "IfThen" -> interior e $ liftM3 IfThen parseObsCond parseObsCond parseObsCond
+    x        -> fail $ "cannot parse " ++ x
 
 -- | Create XML tags
 printObs :: Obs a -> Content ()

@@ -13,11 +13,9 @@ import Contract
 import Observable (Steps(..))
 import qualified Observable as Obs
 import DecisionTree
-import Display
 
-import Prelude hiding (product, until, and)
+import Prelude hiding (product, until, and, id)
 import Data.List hiding (and)
-import Data.Ord
 
 
 -- ---------------------------------------------------------------------------
@@ -115,11 +113,10 @@ simplifyWait time conds opts =
                  -- simplified conditions
                  else Right ((at horizon, k) : simplifiedConds)
 
+checkCondTrue :: Time -> [(Obs Bool, a)] -> Either a [(Obs Bool, a)]
+checkCondTrue time conds
+  | ((_,k) :_) <- trueConds = Left  k
+  | otherwise               = Right otherConds'
   where
-    checkCondTrue :: Time -> [(Obs Bool, a)] -> Either a [(Obs Bool, a)]
-    checkCondTrue time conds
-      | ((_,k) :_) <- trueConds = Left  k
-      | otherwise               = Right otherConds'
-      where
-        (trueConds, otherConds) = partition (Obs.isTrue time . fst) conds
-        otherConds' = filter (not . Obs.evermoreFalse time . fst) otherConds
+    (trueConds, otherConds) = partition (Obs.isTrue time . fst) conds
+    otherConds' = filter (not . Obs.evermoreFalse time . fst) otherConds
