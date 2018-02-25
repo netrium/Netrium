@@ -2,23 +2,28 @@
 -- |under the MIT license,  the text of which can be found in license.txt
 --
 {-# OPTIONS_HADDOCK hide #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module XmlUtils where
 
 import Text.XML.HaXml.Namespaces (localName)
+import Text.XML.HaXml.Types (QName(..))
 import Text.XML.HaXml.XmlContent
 import Data.Time
 
+attrStr :: Monad m => QName -> Element t -> m String
 attrStr n (Elem _ as _) =
     case lookup n as of
       Nothing -> fail ("expected attribute " ++ localName n)
       Just av -> return (attr2str av)
 
+attrRead :: (Read b, Monad m) => QName -> Element t -> m b
 attrRead n e = do
     str <- attrStr n e
     case reads str of
       [(v,_)] -> return v
       _       -> fail $ "cannot parse attribute " ++ localName n ++ ": " ++ str
 
+mkElemAC :: QName -> [Attribute] -> [Content ()] -> Content ()
 mkElemAC x as cs = CElem (Elem x as cs) ()
 
 readText :: Read a => XMLParser a
@@ -35,6 +40,7 @@ instance XmlContent Bool where
     commit $ interior e $ case localName t of
       "True"  -> return True
       "False" -> return False
+      x       -> fail $ "cannot parse " ++ x
 
   toContents True  = [mkElemC "True"  []]
   toContents False = [mkElemC "False" []]

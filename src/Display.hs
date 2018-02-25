@@ -13,8 +13,9 @@ module Display (
 
   ) where
 
+import Control.Monad (void)
 import Data.Tree
-import System.Cmd
+import System.Process
 
 import WriteDotGraph
 
@@ -34,6 +35,5 @@ disp = disp' 8
 disp' :: Display a => Int -> a -> IO ()
 disp' depth x = do
   writeDotFile "out.dot" (trimDepth depth $ toTree x)
-  rawSystem "dot" ["-Tsvg", "-o", "out.svg", "out.dot"]
-  rawSystem "eog" ["out.svg"]
-  return ()
+  void $ rawSystem "dot" ["-Tsvg", "-o", "out.svg", "out.dot"]
+  void $ rawSystem "eog" ["out.svg"]

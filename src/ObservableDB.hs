@@ -35,6 +35,7 @@ instance XmlContent ObservableDecl where
     e@(Elem t _ _) <- element ["ObservableDecl"]
     commit $ interior e $ case localName t of
       "ObservableDecl" -> liftM2 ObservableDecl (attrStr (N "name") e) parseContents
+      x -> fail $ "cannot parse " ++ x
 
   toContents (ObservableDecl n t) =
     [mkElemAC (N "ObservableDecl") [(N "name", str2attr n)] (toContents t)]
@@ -48,6 +49,7 @@ instance XmlContent ObservableType where
     commit $ interior e $ case localName t of
       "Double" -> return Double
       "Bool"   -> return Bool
+      x        -> fail $ "cannot parse " ++ x
 
   toContents Double = [mkElemC "Double" []]
   toContents Bool   = [mkElemC "Bool"   []]

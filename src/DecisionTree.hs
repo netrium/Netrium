@@ -11,7 +11,6 @@ import qualified Observable as Obs
 import Display
 
 import Prelude hiding (product, until, and)
-import Data.List hiding (and)
 import Control.Monad hiding (when)
 import Text.XML.HaXml.Namespaces (localName)
 import Text.XML.HaXml.XmlContent
@@ -45,9 +44,9 @@ data Party = FirstParty | Counterparty | ThirdParty PartyName
 data DecisionTree = DecisionTree Time (DecisionStep DecisionTree)
 
 unfoldDecisionTree :: (a -> (DecisionStep a, Time)) -> a -> DecisionTree
-unfoldDecisionTree next = unfold
+unfoldDecisionTree nextStep = unfold
   where
-    unfold x = case next x of
+    unfold x = case nextStep x of
                  (step, time) -> DecisionTree time (fmap unfold step)
 
 decisionTree :: Time -> Contract -> DecisionTree
@@ -204,11 +203,11 @@ subst :: String -> Double -> Contract -> Contract
 subst n v c = case c of
       Zero         -> c
       One _        -> c
-      Give c1      -> Give  (subst n v c1)
+      Give c1      -> Give (subst n v c1)
       Party p c1   -> Party p (subst n v c1)
-      And  c1 c2   -> And   (subst n v c1) (subst n v c2)
-      Or  id c1 c2 -> Or id (subst n v c1) (subst n v c2)
-      Cond o c1 c2 -> Cond  (Obs.subst n v o) (subst n v c1) (subst n v c2)
+      And  c1 c2   -> And (subst n v c1) (subst n v c2)
+      Or id' c1 c2 -> Or id' (subst n v c1) (subst n v c2)
+      Cond o c1 c2 -> Cond (Obs.subst n v o) (subst n v c1) (subst n v c2)
       Scale o c1   -> Scale (Obs.subst n v o) (subst n v c1)
       Read n' o c1
         | n == n'  -> Read n' (Obs.subst n v o) c1
@@ -289,12 +288,12 @@ evalTradeDir (TradeDirQToP p q) = party q . give . party p . give
 setThirdParty :: PartyName -> TradeDir -> TradeDir
 setThirdParty p TradeDir2To1     = TradeDirPTo1 p    -- id   . party p     ~~ TradeDirPTo1 p
 setThirdParty p TradeDir1To2     = TradeDirPTo2 p    -- give . party p     ~~ TradeDirPTo2 p
-setThirdParty p (TradeDirPTo1 q) = TradeDirPTo1 p    --        party q . party p =        party p  ~~ TradeDirPTo1 p
-setThirdParty p (TradeDirPTo2 q) = TradeDirPTo2 p    -- give . party q . party p = give . party p  ~~ TradeDirPTo2 p
+setThirdParty p (TradeDirPTo1 _) = TradeDirPTo1 p    --        party q . party p =        party p  ~~ TradeDirPTo1 p
+setThirdParty p (TradeDirPTo2 _) = TradeDirPTo2 p    -- give . party q . party p = give . party p  ~~ TradeDirPTo2 p
 setThirdParty p (TradeDir1ToP q) = TradeDirPToQ p q  --        party q . give . party p                            ~~ TradeDirPToQ p q
 setThirdParty p (TradeDir2ToP q) = TradeDirPToQ p q  -- give . party q . give . party p = party q . give . party p ~~ TradeDirPToQ p q
-setThirdParty p (TradeDirPToQ q r) = TradeDirPToQ p r  -- party r . give . party q .        party p = party r . give . party p ~~ TradeDirPToQ p r
-setThirdParty p (TradeDirQToP q r) = TradeDirPToQ p q  -- party r . give . party q . give . party p = party q . give . party p ~~ TradeDirPToQ p q
+setThirdParty p (TradeDirPToQ _ r) = TradeDirPToQ p r  -- party r . give . party q .        party p = party r . give . party p ~~ TradeDirPToQ p r
+setThirdParty p (TradeDirQToP q _) = TradeDirPToQ p q  -- party r . give . party q . give . party p = party q . give . party p ~~ TradeDirPToQ p q
 
 -- | Precompose a TradeDir with 'give' to get a new combined TradeDir.
 --
@@ -381,7 +380,7 @@ instance Display DecisionTree where
                               partyDescr = case p of
                                 FirstParty   -> "choose "
                                 Counterparty -> "counterparty choice "
-                                ThirdParty p -> "3rd party " ++ p ++ " choice "
+                                ThirdParty p3 -> "3rd party " ++ p3 ++ " choice "
     ObserveCond obs st1 st2 -> Node "observe cond" [toTree obs
                                                    ,toTree st1
                                                    ,toTree st2]
@@ -409,6 +408,7 @@ instance XmlContent Party where
       "Party"        -> return FirstParty
       "Counterparty" -> return Counterparty
       "ThirdParty"   -> liftM  ThirdParty text
+      _              -> fail "cannot parse"
 
   toContents FirstParty     = [mkElemC "Party"  []]
   toContents Counterparty   = [mkElemC "Counterparty" []]
@@ -432,6 +432,7 @@ instance XmlContent TradeDir where
       "TradeDir2ToP" -> liftM TradeDir2ToP text
       "TradeDirPToQ" -> liftM2 TradeDirPToQ text text
       "TradeDirQToP" -> liftM2 TradeDirQToP text text
+      _              -> fail "cannot parse"
 
   toContents TradeDir2To1     = [mkElemC "TradeDir2To1"  []]
   toContents TradeDir1To2     = [mkElemC "TradeDir1To2"  []]
@@ -455,6 +456,7 @@ instance XmlContent c => XmlContent (Blocked c) where
                                                     (inElement "ChoiceId" text)
                                                     (fmap unObsCondition parseContents)
                                                     parseContents
+      _                  -> fail "cannot parse"
 
   toContents (BlockedOnWhen obs c) =
     [mkElemC "BlockedOnWhen"  (toContents (ObsCondition obs) ++ toContents c)]

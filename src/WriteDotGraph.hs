@@ -10,9 +10,11 @@ labelTree :: Tree a -> Int -> (Tree (Int,a), Int)
 labelTree (Node l ts) n = (Node (n,l) ts', n')
   where
     (ts', n') = labelForest ts [] (n+1)
-    labelForest []     nts n = (reverse nts, n)
-    labelForest (t:ts) nts n = let (nt, n') = labelTree t n
-                                in labelForest ts (nt:nts) n'
+
+labelForest :: [Tree a] -> [Tree (Int, a)] -> Int -> ([Tree (Int, a)], Int)
+labelForest []     nts n = (reverse nts, n)
+labelForest (t:ts) nts n = let (nt, n') = labelTree t n
+                           in labelForest ts (nt:nts) n'
 
 treeToGraph :: Tree (Int, String) -> ([(Int, String)], [(Int, Int)])
 treeToGraph (Node (n, label) ts) =
@@ -48,9 +50,11 @@ renderDotGraph tree =
     escape (c   :cs) = c      : escape cs
 
 
+header, footer :: String
 header = "digraph contract {"
 footer = "}"
 
+graphDefaultAtribs, nodeDefaultAtribs, edgeDefaultAtribs :: String
 graphDefaultAtribs = "\tgraph [fontsize=14, fontcolor=black, color=black];"
 nodeDefaultAtribs  = "\tnode [label=\"\\N\", width=\"0.75\", shape=ellipse];"
 edgeDefaultAtribs  = "\tedge [fontsize=10];"

@@ -4,8 +4,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 module Observations where
 
-import Contract
-import DecisionTree
+import Contract hiding (var)
 import Observable (VarName)
 import ObservableDB (ObservableType(..))
 import XmlUtils
@@ -14,7 +13,6 @@ import Control.Monad
 import Data.List
 import qualified Data.Map as Map
 import Data.Map (Map)
-import Data.Monoid
 import Data.Function
 import Text.XML.HaXml.Namespaces (localName)
 import Text.XML.HaXml.Types (QName(..))
@@ -70,6 +68,7 @@ timeSeriesEvents = TEs . go
 newtype TimedEvents a = TEs [(Time, a)]
   deriving (Show, Read, Eq)
 
+unTEs :: TimedEvents a -> [(Time, a)]
 unTEs (TEs x) = x
 
 instance Functor TimedEvents where
@@ -187,6 +186,7 @@ instance XmlContent ObservationSeries where
         case seriesType of
           Double -> liftM (ObservationsSeriesDouble seriesVar) parseContents
           Bool   -> liftM (ObservationsSeriesBool   seriesVar) parseContents
+      _                   -> fail "cannot parse"
 
   toContents (ObservationsSeriesBool var ts) =
     [mkElemAC (N "ObservationSeries") [(N "type", str2attr "Bool")
@@ -213,6 +213,7 @@ instance XmlContent ChoiceSeries where
     e@(Elem t _ _) <- element ["Choices"]
     commit $ interior e $ case localName t of
       "Choices" -> liftM ChoiceSeries parseContents
+      _         -> fail "cannot parse"
 
   toContents (ChoiceSeries cs) = [mkElemC "Choices" (toContents cs)]
 
@@ -222,10 +223,11 @@ instance XmlContent Choice where
     commit $ interior e $ case localName t of
       "Choice" -> do
         cid <- attrStr (N "choiceid") e
-        content <- parseContents
-        case content of
+        c <- parseContents
+        case c of
           Nothing -> return (AnytimeChoice cid)
           Just m  -> return (OrChoice cid m)
+      _        -> fail "cannot parse"
 
   toContents (OrChoice cid m)    =
     [mkElemAC (N "Choice") [(N "choiceid", str2attr cid)] (toContents m)]
@@ -245,6 +247,7 @@ instance XmlContent SeriesEnd where
     commit $ interior e $ case localName  t of
       "SeriesUnbounded" -> return Unbounded
       "SeriesEnds"      -> liftM Bounded parseContents
+      _                 -> fail "cannot parse"
 
   toContents Unbounded   = [mkElemC "SeriesUnbounded" []]
   toContents (Bounded t) = [mkElemC "Bounded" (toContents t)]

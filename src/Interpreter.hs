@@ -5,7 +5,7 @@
 
 module Interpreter where
 
-import Contract
+import Contract hiding (party)
 import Observable (Steps(..), VarName)
 import qualified Observable as Obs
 import DecisionTree hiding (Trade)
@@ -15,7 +15,6 @@ import Observations
 
 import Prelude hiding (product, until, and)
 import Data.List hiding (and)
-import Data.Monoid
 import qualified Data.Map as Map
 import Data.Map (Map)
 import Control.Monad
@@ -384,6 +383,7 @@ instance XmlContent Output where
                                         parseContents parseContents
         "OptionUntil"   -> liftM2 OptionUntil   (attrStr (N "choiceid") e) parseContents
         "OptionForever" -> liftM  OptionForever (attrStr (N "choiceid") e)
+        _               -> fail "cannot parse"
 
     toContents (Trade p p' sf t)       = [mkElemC "Trade" (toContents p
                                                           ++ toContents p'
@@ -413,6 +413,7 @@ instance XmlContent StopReason where
                                                   (attrStr (N "choiceid") e)
         "ObservationMissing"   -> liftM ObservationMissing   (attrStr (N "var") e)
         "ObservationExhausted" -> liftM ObservationExhausted (attrStr (N "var") e)
+        _                      -> fail "cannot parse"
 
     toContents Finished    = [mkElemC "Finished"    []]
     toContents StoppedTime = [mkElemC "StoppedTime" []]
@@ -436,7 +437,8 @@ instance XmlContent StopWait where
     e@(Elem t _ _) <- element ["StopFirstWait", "StopNextWait"]
     commit $ interior e $ case localName t of
       "StopFirstWait" -> return StopFirstWait
-      "StopNextWait"  -> return StopNextWait)
+      "StopNextWait"  -> return StopNextWait
+      _               -> fail "cannot parse")
     `onFail` return NoStop
 
   toContents NoStop        = []
