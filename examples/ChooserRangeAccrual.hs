@@ -1,3 +1,5 @@
+-- |Netrium is Copyright Anthony Waite, Dave Hewett, Shaun Laurens & Contributors 2009-2018, and files herein are licensed
+-- |under the MIT license,  the text of which can be found in license.txt
 module ChooserRangeAccrual where
 
 import Prelude hiding (and, or, until, read, all, any, max, min, negate, abs)
