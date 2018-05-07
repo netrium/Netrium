@@ -91,7 +91,7 @@ exit =
 printVersion :: IO ()
 printVersion = do
   p <- getProgName
-  putStrLn $ "netrium-demo " ++ p ++ " version " ++ showVersion version
+  putStrLn $ "netrium " ++ p ++ " version " ++ showVersion version
 
 
 simulate :: Options -> FilePath -> FilePath -> FilePath -> IO ()

@@ -124,7 +124,7 @@ exit errs = do
 printVersion :: IO ()
 printVersion = do
   p <- getProgName
-  putStrLn $ "netrium-demo " ++ p ++ " version " ++ showVersion version
+  putStrLn $ "netrium " ++ p ++ " version " ++ showVersion version
 
 
 visualise :: Options -> FilePath -> FilePath -> IO ()

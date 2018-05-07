@@ -293,13 +293,13 @@ zcb t pr cur cft = when (at t) (financial pr cur cft)
 -- The note pays a coupon based on the number of days that e.g. 6-month LIBOR
 -- sits within an e.g. [80bps] range.
 -- The range is chosen by the buyer at the beginning of each coupon period.
-chooserLeg :: Int		    -- ^Range for observation period
-	       -> Int		    -- ^Index strike for observation period
-	       -> Time		    -- ^Coupon settlement date
-	       -> Schedule		-- ^Dates for observation period
+chooserLeg :: Int            -- ^Range for observation period
+           -> Int            -- ^Index strike for observation period
+           -> Time            -- ^Coupon settlement date
+           -> Schedule        -- ^Dates for observation period
            -> Currency      -- ^Payment currency
            -> Index         -- ^Coupon rate
-	       -> CashFlowType  -- ^Cashflow type
+           -> CashFlowType  -- ^Cashflow type
            -> Contract
 
 chooserLeg range strike setD sch cur cRate cft =
@@ -315,7 +315,7 @@ chooserLeg range strike setD sch cur cRate cft =
 
     settlementDate couponAmount = when (at setD) $ financial paymentDue cur cft
       where
-	-- bit of a cheat here. should be a count of actual business days, not total
+    -- bit of a cheat here. should be a count of actual business days, not total
   -- number of days
         paymentDue = cRate %* var "daysWithinRange" %/ konst (fromIntegral(length sch))
 
@@ -325,7 +325,7 @@ chooserLeg range strike setD sch cur cRate cft =
 
         ifthen (cRate %<= konst (fromIntegral(strike + range))
                %&& cRate %> konst (fromIntegral(strike - range)))
-	       (konst 1) (konst 0)
+           (konst 1) (konst 0)
 
 -- | A chooser note has a set of 'chooserLeg'
 chooserNote :: [Contract] -> Contract

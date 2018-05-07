@@ -81,7 +81,7 @@ printVersion :: IO ()
 printVersion =
   do
     p <- getProgName
-    putStrLn $ "netrium-demo " ++ p ++ " version " ++ showVersion version
+    putStrLn $ "netrium " ++ p ++ " version " ++ showVersion version
 
 
 getObservableDBs :: Options -> IO [ObservableDB]
@@ -115,7 +115,7 @@ normalise opts input output =
 
     -- compile and run it
     ddir <- getDataDir
-    let ghcargs = [ "-package", "netrium-demo-" ++ showVersion version ]
+    let ghcargs = [ "-package", "netrium-" ++ showVersion version ]
                ++ [ "-i" ++ dir | dir <- ddir : optImportDirs opts ++ [cdir] ]
         args    = map ("--ghc-arg="++) ghcargs ++ [fp]
     ph <- runProcess "runghc" args Nothing Nothing Nothing Nothing Nothing
